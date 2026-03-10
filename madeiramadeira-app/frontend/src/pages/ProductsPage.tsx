@@ -30,19 +30,6 @@ export const ProductsPage: React.FC = () => {
     fetchProducts();
   }, [page]);
 
-  const handleProductUpdate = async (sku: string, field: string, value: any) => {
-    try {
-      await marketplaceApi.updateProduct(sku, { [field]: value });
-      setProducts(
-        products.map((p) =>
-          p.sku === sku ? { ...p, [field]: value } : p
-        )
-      );
-    } catch (err: any) {
-      setError(err.message);
-    }
-  };
-
   const handleBulkUpdate = async () => {
     try {
       for (const sku of selectedProducts) {
