@@ -1,30 +1,44 @@
 ╔═══════════════════════════════════════════════════════════════════╗
 ║           MADEIRAMADEIRA DEPLOYMENT - QUICK REFERENCE             ║
+║          Manual Deployment on Render (Proven Method)               ║
 ╚═══════════════════════════════════════════════════════════════════╝
 
-🚀 DEPLOYMENT IN 5 MINUTES
+⚠️  NOTE: Use MANUAL_RENDER_DEPLOYMENT.md for detailed step-by-step
+instructions. This quick reference is a summary of the main steps.
+
+🚀 DEPLOYMENT IN 10 MINUTES
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-1. https://dashboard.render.com → New + → PostgreSQL
-   Name: madeiramadeira-db
-   Region: Oregon
-   Copy connection string
+STEP 1: Create PostgreSQL Database
+  • Dashboard: https://dashboard.render.com
+  • Click: New + → PostgreSQL
+  • Name: madeiramadeira-db (Region: Oregon, Plan: Free)
+  • Copy CONNECTION STRING
+  
+STEP 2: Deploy Backend API
+  • Click: New + → Web Service
+  • Repo: https://github.com/aRFialho/MadeiraMadeira-API.git
+  • Name: madeiramadeira-api
+  • Region: Oregon
+  • Build Command: npm run install-all && npm run build
+  • Start Command: npm -w backend run start
+  • Environment Variables:
+    - NODE_ENV: production
+    - PORT: 3001
+    - JWT_SECRET: (click Generate)
+    - MADEIRAMADEIRA_TOKEN: MMKTP18042018145802
+    - MADEIRAMADEIRA_API_URL: https://marketplace.madeiramadeira.com.br
+    - DATABASE_URL: (paste from PostgreSQL)
 
-2. https://dashboard.render.com → New + → Web Service
-   Repo: https://github.com/aRFialho/MadeiraMadeira-API.git
-   Build: npm run install-all && npm run build
-   Start: npm -w backend run start
-   Env: DATABASE_URL=<from step 1>
-        NODE_ENV=production
-        MADEIRAMADEIRA_TOKEN=MMKTP18042018145802
-        MADEIRAMADEIRA_API_URL=https://marketplace.madeiramadeira.com.br
+STEP 3: Deploy Frontend
+  • Click: New + → Static Site
+  • Repo: https://github.com/aRFialho/MadeiraMadeira-API.git
+  • Name: madeiramadeira-web
+  • Build: npm run install-all && npm -w frontend run build
+  • Publish Dir: frontend/dist
+  • Env: VITE_API_URL=https://madeiraapi.onrender.com
 
-3. https://dashboard.render.com → New + → Static Site
-   Build: npm run install-all && npm -w frontend run build
-   Publish: frontend/dist
-   Env: VITE_API_URL=https://madeiraapi.onrender.com
-
-4. Wait 5 minutes → Done! 🎉
+STEP 4: Wait 5-10 minutes → Done! 🎉
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
