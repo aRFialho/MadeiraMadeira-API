@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import path from 'path';
 import { initializeDatabase } from './database/connection';
 import { errorHandler } from './middleware/auth';
 import authRoutes from './routes/auth';
@@ -35,6 +36,15 @@ app.get('/', (req, res) => {
 });
 
 app.use(errorHandler);
+
+// Serve static files from the React app
+app.use(express.static(path.join(__dirname, '../../frontend/dist')));
+
+// The "catchall" handler: for any request that doesn't
+// match one above, send back React's index.html file.
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../../frontend/dist/index.html'));
+});
 
 async function startServer() {
   try {
