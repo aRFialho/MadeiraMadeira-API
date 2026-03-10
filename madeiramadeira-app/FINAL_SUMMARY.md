@@ -45,11 +45,11 @@ DEPLOYMENT (FOLLOW THESE STEPS):
 2. Create PostgreSQL database (Name: madeiramadeira-db, Region: Oregon)
 3. Create Web Service for backend:
    - GitHub: https://github.com/aRFialho/MadeiraMadeira-API.git
-   - Build: npm install-all && npm run build
+   - Build: npm run install-all && npm run build
    - Start: npm -w backend run start
    - Add DATABASE_URL from PostgreSQL
 4. Create Static Site for frontend:
-   - Build: npm install-all && npm -w frontend run build
+   - Build: npm run install-all && npm -w frontend run build
    - Publish: frontend/dist
    - Add VITE_API_URL=https://madeiraapi.onrender.com
 
@@ -241,7 +241,7 @@ docker-compose.yml             - Local Docker setup (optional)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 Install dependencies:
-  npm install-all
+  npm run install-all
 
 Start development:
   npm run dev

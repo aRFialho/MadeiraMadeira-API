@@ -70,7 +70,7 @@ Database:      PostgreSQL on Render (Oregon)
    │ Environment:       Node                 │
    │ Region:            Oregon               │
    │ Branch:            main                 │
-   │ Build Command:     npm install-all &&   │
+   │ Build Command:     npm run install-all &&│
    │                    npm run build        │
    │ Start Command:     npm -w backend run   │
    │                    start                │
@@ -128,7 +128,7 @@ Database:      PostgreSQL on Render (Oregon)
    │ Environment:       Node                  │
    │ Region:            Oregon                │
    │ Branch:            main                  │
-   │ Build Command:     npm install-all &&    │
+   │ Build Command:     npm run install-all && │
    │                    npm -w frontend build │
    │ Publish Directory: frontend/dist         │
    └──────────────────────────────────────────┘

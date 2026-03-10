@@ -21,7 +21,7 @@ https://madeiraapi.onrender.com
 
 **Configurações**:
 - **Environment**: Node
-- **Build Command**: `npm install-all && npm run build`
+- **Build Command**: `npm run install-all && npm run build`
 - **Start Command**: `npm -w backend run start`
 - **Region**: Oregon (ou sua preferência)
 
@@ -56,7 +56,7 @@ DATABASE_URL=<será configurado com PostgreSQL>
 1. Clicar em "New +" → "Static Site"
 2. **Nome**: `madeiramadeira-web`
 3. **Publish directory**: `frontend/dist`
-4. **Build Command**: `npm install-all && npm -w frontend run build`
+4. **Build Command**: `npm run install-all && npm -w frontend run build`
 5. Configurar variável de ambiente:
    ```
    VITE_API_URL=https://madeiraapi.onrender.com

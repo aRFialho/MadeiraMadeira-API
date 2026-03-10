@@ -2,7 +2,7 @@ services:
   - type: web
     name: madeiramadeira-api
     runtime: node
-    buildCommand: npm install-all && npm run build
+    buildCommand: npm run install-all && npm run build
     startCommand: npm -w backend run start
     envVars:
       - key: NODE_ENV
@@ -26,7 +26,7 @@ services:
 
   - type: static_site
     name: madeiramadeira-web
-    buildCommand: npm install-all && npm -w frontend run build
+    buildCommand: npm run install-all && npm -w frontend run build
     staticPublishPath: ./frontend/dist
     envVars:
       - key: VITE_API_URL

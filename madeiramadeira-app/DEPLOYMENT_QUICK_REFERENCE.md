@@ -12,7 +12,7 @@
 
 2. https://dashboard.render.com → New + → Web Service
    Repo: https://github.com/aRFialho/MadeiraMadeira-API.git
-   Build: npm install-all && npm run build
+   Build: npm run install-all && npm run build
    Start: npm -w backend run start
    Env: DATABASE_URL=<from step 1>
         NODE_ENV=production
@@ -20,7 +20,7 @@
         MADEIRAMADEIRA_API_URL=https://marketplace.madeiramadeira.com.br
 
 3. https://dashboard.render.com → New + → Static Site
-   Build: npm install-all && npm -w frontend run build
+   Build: npm run install-all && npm -w frontend run build
    Publish: frontend/dist
    Env: VITE_API_URL=https://madeiraapi.onrender.com
 
