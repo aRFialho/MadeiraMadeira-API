@@ -20,7 +20,7 @@ STEP 2: Deploy Backend API
   • Repo: https://github.com/aRFialho/MadeiraMadeira-API.git
   • Name: madeiramadeira-api
   • Region: Oregon
-  • Build Command: npm run install-all && npm run build
+  • Build Command: npm install --production=false && npm run build
   • Start Command: npm -w backend run start
   • Environment Variables:
     - NODE_ENV: production
@@ -34,7 +34,7 @@ STEP 3: Deploy Frontend
   • Click: New + → Static Site
   • Repo: https://github.com/aRFialho/MadeiraMadeira-API.git
   • Name: madeiramadeira-web
-  • Build: npm run install-all && npm -w frontend run build
+  • Build: npm install --production=false && npm -w frontend run build
   • Publish Dir: frontend/dist
   • Env: VITE_API_URL=https://madeiraapi.onrender.com
 

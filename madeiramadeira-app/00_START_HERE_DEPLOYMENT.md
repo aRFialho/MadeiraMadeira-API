@@ -52,13 +52,13 @@ ADDITIONAL RESOURCES
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 Backend Build:
-  npm run install-all && npm run build
+  npm install --production=false && npm run build
 
 Backend Start:
   npm -w backend run start
 
 Frontend Build:
-  npm run install-all && npm -w frontend run build
+  npm install --production=false && npm -w frontend run build
 
 Frontend Publish Directory:
   frontend/dist

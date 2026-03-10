@@ -87,7 +87,8 @@ CONFIGURATION FORM:
 BUILD & START COMMANDS:
 
 ┌─────────────────────────────────────────────────────────────┐
-│ Build Command:    npm run install-all && npm run build      │
+│ Build Command:    npm install --production=false &&        │
+│                   npm run build                             │
 │ Start Command:    npm -w backend run start                  │
 └─────────────────────────────────────────────────────────────┘
 
@@ -154,7 +155,7 @@ CONFIGURATION FORM:
 BUILD & PUBLISH:
 
 ┌──────────────────────────────────────────────────────────────┐
-│ Build Command:     npm run install-all &&                   │
+│ Build Command:     npm install --production=false &&       │
 │                    npm -w frontend run build                │
 │ Publish Directory: frontend/dist                            │
 └──────────────────────────────────────────────────────────────┘
