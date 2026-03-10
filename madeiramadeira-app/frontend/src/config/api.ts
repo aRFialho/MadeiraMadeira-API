@@ -1,5 +1,10 @@
 // API Configuration
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://madeiramadeira-api.onrender.com';
+let API_BASE_URL = import.meta.env.VITE_API_URL || 'https://madeiramadeira-api.onrender.com';
+
+// Safety check: if API_URL contains 'madeiramadeira-web', it's wrong (pointing to frontend).
+if (API_BASE_URL.includes('madeiramadeira-web.onrender.com')) {
+  API_BASE_URL = 'https://madeiramadeira-api.onrender.com';
+}
 
 export const apiConfig = {
   baseURL: API_BASE_URL,
