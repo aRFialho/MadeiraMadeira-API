@@ -1,0 +1,20 @@
+{
+  "name": "madeiramadeira-app",
+  "version": "1.0.0",
+  "description": "MadeiraMadeira Dashboard - Controle e gerenciamento de pedidos e produtos",
+  "private": true,
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "install-all": "npm install && npm -w backend install && npm -w frontend install",
+    "dev": "concurrently \"npm -w backend run dev\" \"npm -w frontend run dev\"",
+    "build": "npm -w backend run build && npm -w frontend run build",
+    "start": "npm -w backend run start",
+    "typecheck": "npm -w backend run typecheck"
+  },
+  "devDependencies": {
+    "concurrently": "^8.0.0"
+  }
+}

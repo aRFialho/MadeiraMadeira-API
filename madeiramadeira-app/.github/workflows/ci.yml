@@ -1,0 +1,41 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Use Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm install-all
+
+    - name: Typecheck backend
+      run: npm -w backend run typecheck
+
+    - name: Build backend
+      run: npm -w backend run build
+
+    - name: Build frontend
+      run: npm -w frontend run build
+
+    - name: Archive build artifacts
+      if: github.ref == 'refs/heads/main'
+      uses: actions/upload-artifact@v3
+      with:
+        name: build
+        path: |
+          backend/dist
+          frontend/dist
