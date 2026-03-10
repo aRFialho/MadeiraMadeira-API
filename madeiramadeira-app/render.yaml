@@ -2,7 +2,7 @@ services:
   - type: web
     name: madeiramadeira-api
     runtime: node
-    buildCommand: npm run build
+    buildCommand: npm install-all && npm run build
     startCommand: npm -w backend run start
     envVars:
       - key: NODE_ENV
@@ -24,14 +24,13 @@ services:
       - key: MADEIRAMADEIRA_SANDBOX_URL
         value: https://marketplace-sandbox.madeiramadeira.com.br
 
-  - type: web
+  - type: static_site
     name: madeiramadeira-web
-    runtime: node
-    buildCommand: npm -w frontend run build
-    startCommand: npm -w frontend run preview
-    routes:
-      - path: /
-        destination: http://localhost:3000
+    buildCommand: npm install-all && npm -w frontend run build
+    staticPublishPath: ./frontend/dist
+    envVars:
+      - key: VITE_API_URL
+        value: https://madeiraapi.onrender.com
 
 databases:
   - name: madeiramadeira-db

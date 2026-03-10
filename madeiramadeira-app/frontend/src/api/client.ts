@@ -1,8 +1,13 @@
 import axios from 'axios';
 import { useAuthStore } from '../stores/authStore';
 
+// Use full API URL in production, relative path in development
+const baseURL = import.meta.env.VITE_API_URL 
+  ? `${import.meta.env.VITE_API_URL}/api`
+  : '/api';
+
 const apiClient = axios.create({
-  baseURL: '/api',
+  baseURL,
   headers: {
     'Content-Type': 'application/json',
   },
