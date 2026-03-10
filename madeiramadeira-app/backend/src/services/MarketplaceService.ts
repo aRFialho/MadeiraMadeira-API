@@ -21,6 +21,9 @@ const mmApiClient = axios.create({
     "Content-Type": "application/json",
     TOKENMM: MM_TOKEN,
   },
+  params: {
+    TOKENMM: MM_TOKEN,
+  },
 });
 
 axiosRetry(mmApiClient, {
@@ -69,6 +72,7 @@ export class MarketplaceService {
       if (!Array.isArray(data) || data.length === 0) break;
 
       const products = data.map((p: any) => ({
+
         id: p.id_produto?.toString(),
         id_produto_seller: p.id_produto_seller,
         sku: p.sku,
@@ -83,12 +87,15 @@ export class MarketplaceService {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         synced_at: new Date().toISOString(),
+
       }));
 
       for (const product of products) {
+
         try {
 
           await query(
+
             `INSERT INTO products
             (user_id, sku, id_produto_seller, nome, descricao, ean, marca,
             preco_de, preco_por, estoque, status, synced_at)
@@ -102,6 +109,7 @@ export class MarketplaceService {
               estoque = EXCLUDED.estoque,
               updated_at = CURRENT_TIMESTAMP,
               synced_at = EXCLUDED.synced_at`,
+
             [
               userId,
               product.sku,
@@ -116,19 +124,27 @@ export class MarketplaceService {
               product.status,
               product.synced_at,
             ]
+
           );
 
         } catch (err) {
+
           console.warn("⚠️ DB product error:", product.sku);
+
         }
+
       }
 
       allProducts.push(...products);
 
       offset += limit;
+
     }
 
+    console.log("✅ Produtos sincronizados:", allProducts.length);
+
     return allProducts;
+
   }
 
   // ===============================
@@ -137,16 +153,21 @@ export class MarketplaceService {
 
   async fetchOrders(userId: string): Promise<Order[]> {
 
-    let limit = 100;
+    let limit = 50;
     let offset = 0;
     let allOrders: Order[] = [];
+
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    const dateFilter = sevenDaysAgo.toISOString().split("T")[0];
 
     while (true) {
 
       console.log(`📋 Fetching orders limit=${limit} offset=${offset}`);
 
       const response = await mmApiClient.get(
-        `/v1/pedido/limit=${limit}&offset=${offset}`
+        `/v1/pedido/data_criacao=${dateFilter}&limit=${limit}&offset=${offset}`
       );
 
       const data = response.data?.data || [];
@@ -154,23 +175,27 @@ export class MarketplaceService {
       if (!Array.isArray(data) || data.length === 0) break;
 
       const orders = data.map((order: any) => ({
+
         id: order.id_pedido?.toString() || order.id,
         id_pedido: order.id_pedido,
         id_seller: order.id_seller,
         status: order.status,
-        valor_total: parseFloat(order.valor_total) || 0,
-        data_pedido: new Date(order.data_pedido).toISOString(),
-        data_entrega: order.data_entrega
-          ? new Date(order.data_entrega).toISOString()
+        valor_total: parseFloat(order.total) || parseFloat(order.valor_total) || 0,
+        data_pedido: new Date(order.data_criacao || order.data_pedido).toISOString(),
+        data_entrega: (order.data_previsao_entrega || order.data_entrega)
+          ? new Date(order.data_previsao_entrega || order.data_entrega).toISOString()
           : undefined,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
+
       }));
 
       for (const order of orders) {
+
         try {
 
           await query(
+
             `INSERT INTO orders
             (user_id,id_pedido,id_seller,status,valor_total,data_pedido,data_entrega)
 
@@ -180,6 +205,7 @@ export class MarketplaceService {
             DO UPDATE SET
             status = EXCLUDED.status,
             updated_at = CURRENT_TIMESTAMP`,
+
             [
               userId,
               order.id_pedido,
@@ -189,19 +215,27 @@ export class MarketplaceService {
               order.data_pedido,
               order.data_entrega,
             ]
+
           );
 
         } catch (err) {
+
           console.warn("⚠️ DB order error:", order.id_pedido);
+
         }
+
       }
 
       allOrders.push(...orders);
 
       offset += limit;
+
     }
 
+    console.log("✅ Pedidos sincronizados:", allOrders.length);
+
     return allOrders;
+
   }
 
   // ===============================
@@ -216,18 +250,35 @@ export class MarketplaceService {
 
     if (!order) throw new Error("Pedido não encontrado");
 
-    const items = (order.itens || []).map((i: any) => ({
-      id: i.id,
-      sku: i.sku,
-      nome: i.nome,
-      quantidade: parseInt(i.quantidade) || 0,
-      preco_unitario: parseFloat(i.preco_unitario) || 0,
-      subtotal: parseFloat(i.subtotal) || 0,
-    }));
+    const items = (order.skus || order.itens || []).map((i: any) => {
 
-    const valor_total = parseFloat(order.valor_total) || 0;
-    const valor_frete = parseFloat(order.valor_frete) || 0;
-    const desconto_percentual = parseFloat(order.desconto_percentual) || 0;
+      const quantidade = parseFloat(i.quantidade) || 0;
+      const preco = parseFloat(i.valor_unitario || i.preco_unitario) || 0;
+
+      return {
+        id: i.id_pedido_item || i.id,
+        sku: i.sku,
+        nome: i.nome,
+        quantidade,
+        preco_unitario: preco,
+        subtotal: quantidade * preco,
+      };
+
+    });
+
+    const valor_total =
+      parseFloat(order.total) ||
+      parseFloat(order.valor_total) ||
+      0;
+
+    const valor_frete =
+      parseFloat(order.frete) ||
+      parseFloat(order.valor_frete) ||
+      0;
+
+    const desconto_percentual =
+      parseFloat(order.desconto_percentual) ||
+      0;
 
     const desconto_valor =
       parseFloat(order.desconto_valor) ||
@@ -238,6 +289,7 @@ export class MarketplaceService {
     const valor_liquido = valor_total - desconto_valor;
 
     const taxa_plataforma_percentual = 12;
+
     const taxa_plataforma_valor =
       (valor_liquido * taxa_plataforma_percentual) / 100;
 
@@ -245,6 +297,7 @@ export class MarketplaceService {
       valor_liquido - taxa_plataforma_valor;
 
     return {
+
       id: orderId.toString(),
       id_pedido: order.id_pedido,
       id_seller: order.id_seller,
@@ -258,13 +311,18 @@ export class MarketplaceService {
       taxa_plataforma_percentual,
       taxa_plataforma_valor,
       repasse_liquido,
-      data_pedido: new Date(order.data_pedido).toISOString(),
-      data_entrega: order.data_entrega
-        ? new Date(order.data_entrega).toISOString()
+
+      data_pedido: new Date(order.data_criacao || order.data_pedido).toISOString(),
+
+      data_entrega: (order.data_previsao_entrega || order.data_entrega)
+        ? new Date(order.data_previsao_entrega || order.data_entrega).toISOString()
         : undefined,
+
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
+
     };
+
   }
 
   // ===============================
@@ -274,7 +332,9 @@ export class MarketplaceService {
   async updateProduct(sku: string, data: Partial<Product>) {
 
     await mmApiClient.put("/v1/produto", {
+
       sku,
+      id_produto_seller: data.id_produto_seller,
       nome: data.nome,
       descricao: data.descricao,
       preco_de: data.preco_de,
@@ -282,9 +342,11 @@ export class MarketplaceService {
       estoque: data.estoque,
       marca: data.marca,
       ean: data.ean,
+
     });
 
     console.log("✅ Produto atualizado:", sku);
+
   }
 
   // ===============================
@@ -302,10 +364,13 @@ export class MarketplaceService {
     const mmStatus = statusMap[status] || status;
 
     await mmApiClient.put(`/v1/pedido/${mmStatus}`, {
+
       id_pedido: orderId,
+
     });
 
     console.log("✅ Pedido atualizado:", orderId);
+
   }
 
 }

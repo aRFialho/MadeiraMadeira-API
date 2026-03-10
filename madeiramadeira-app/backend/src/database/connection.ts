@@ -99,6 +99,16 @@ export async function initializeDatabase() {
       CREATE INDEX IF NOT EXISTS idx_sales_metrics_data_dia ON sales_metrics(data_dia);
     `);
     
+    // Add unique constraints explicitly if they don't exist (though table creation has them)
+    // This is a safety measure if tables already existed without them
+    try {
+        await query(`ALTER TABLE products ADD CONSTRAINT products_sku_unique UNIQUE (sku);`);
+    } catch (e) { /* ignore if exists */ }
+    
+    try {
+        await query(`ALTER TABLE orders ADD CONSTRAINT orders_id_pedido_unique UNIQUE (id_pedido);`);
+    } catch (e) { /* ignore if exists */ }
+
     // Seed default admin user
     const adminId = DEFAULT_USER_ID;
     await query(`
