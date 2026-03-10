@@ -10,8 +10,9 @@ interface AuthStore {
 }
 
 export const useAuthStore = create<AuthStore>((set) => ({
-  user: JSON.parse(localStorage.getItem('user') || 'null'),
-  token: localStorage.getItem('token'),
+  // Initialize with a dummy user to simulate logged-in state
+  user: { userId: '1', username: 'admin', email: 'admin@madeiramadeira.com.br' } as User,
+  token: 'dummy-token',
   isLoading: false,
   setUser: (user, token) => {
     if (user && token) {
@@ -21,8 +22,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
     set({ user, token });
   },
   logout: () => {
-    localStorage.removeItem('user');
-    localStorage.removeItem('token');
-    set({ user: null, token: null });
+    // Logout is disabled/noop in no-auth mode
+    console.log('Logout disabled');
   },
 }));

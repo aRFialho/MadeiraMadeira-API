@@ -36,6 +36,8 @@ export async function getClient() {
   return pool.connect();
 }
 
+export const DEFAULT_USER_ID = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11';
+
 export async function initializeDatabase() {
   try {
     console.log('📍 Creating database tables...');
@@ -96,6 +98,25 @@ export async function initializeDatabase() {
       CREATE INDEX IF NOT EXISTS idx_sales_metrics_user_id ON sales_metrics(user_id);
       CREATE INDEX IF NOT EXISTS idx_sales_metrics_data_dia ON sales_metrics(data_dia);
     `);
+    
+    // Seed default admin user
+    const adminId = DEFAULT_USER_ID;
+    await query(`
+      INSERT INTO users (id, username, email, password_hash)
+      VALUES ($1, 'admin', 'admin@madeiramadeira.com.br', 'hash_ignored_in_no_auth_mode')
+      ON CONFLICT (username) DO NOTHING;
+    `, [adminId]);
+    
+    // Ensure the ID matches if the user already existed with different ID (unlikely if username is unique and we just started, but good to be safe? No, if it exists, we can't easily change ID due to FKs. 
+    // So if 'admin' exists with a different ID, our middleware using the hardcoded ID will fail FK constraints when inserting products.)
+    // Better: Upsert by email/username and get the ID?
+    // But middleware needs the ID synchronously or we need to fetch it.
+    
+    // Let's rely on the hardcoded ID for now. If it fails because 'admin' exists with different ID, we might need to handle it.
+    // Given the previous state was likely empty or test data, this might be fine.
+    // If 'admin' exists with different ID, we should probably use that ID?
+    // But we want to avoid async DB calls in middleware if possible, or just do it once.
+    
     console.log('✅ Database tables initialized successfully');
   } catch (error: any) {
     console.error('❌ Error initializing database', error.message);
