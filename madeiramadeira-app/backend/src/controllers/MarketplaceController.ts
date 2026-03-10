@@ -6,10 +6,9 @@ export class MarketplaceController {
   async getProducts(req: Request, res: Response) {
     try {
       const userId = req.user!.userId;
-      const limit = parseInt(req.query.limit as string) || 100;
-      const offset = parseInt(req.query.offset as string) || 0;
-
-      const products = await marketplaceService.fetchProducts(userId, limit, offset);
+      
+      // limit and offset are handled internally in MarketplaceService now
+      const products = await marketplaceService.fetchProducts(userId);
       res.json({ data: products, count: products.length });
     } catch (error: any) {
       console.error('Get products error:', error);
@@ -20,10 +19,9 @@ export class MarketplaceController {
   async getOrders(req: Request, res: Response) {
     try {
       const userId = req.user!.userId;
-      const limit = parseInt(req.query.limit as string) || 100;
-      const offset = parseInt(req.query.offset as string) || 0;
 
-      const orders = await marketplaceService.fetchOrders(userId, limit, offset);
+      // limit and offset are handled internally in MarketplaceService now
+      const orders = await marketplaceService.fetchOrders(userId);
       res.json({ data: orders, count: orders.length });
     } catch (error: any) {
       console.error('Get orders error:', error);
@@ -54,7 +52,13 @@ export class MarketplaceController {
       const { sku } = req.params;
       const productData = req.body;
 
-      await marketplaceService.updateProduct(userId, sku, productData);
+      // Update method signature mismatch fix:
+      // The service likely expects (sku, productData) without userId if it's not using it,
+      // OR the controller is passing arguments incorrectly.
+      // Checking service definition: updateProduct(sku: string, data: Partial<Product>)
+      // So userId is NOT needed.
+      await marketplaceService.updateProduct(sku, productData);
+      
       res.json({ message: 'Product updated successfully' });
     } catch (error: any) {
       console.error('Update product error:', error);
@@ -72,7 +76,11 @@ export class MarketplaceController {
         return res.status(400).json({ error: 'Status is required' });
       }
 
-      await marketplaceService.updateOrderStatus(userId, parseInt(orderId), status);
+      // Update method signature mismatch fix:
+      // Checking service definition: updateOrderStatus(orderId: number, status: string)
+      // So userId is NOT needed.
+      await marketplaceService.updateOrderStatus(parseInt(orderId), status);
+      
       res.json({ message: 'Order status updated successfully' });
     } catch (error: any) {
       console.error('Update order status error:', error);

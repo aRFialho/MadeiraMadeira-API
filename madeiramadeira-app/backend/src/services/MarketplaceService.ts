@@ -153,18 +153,16 @@ export class MarketplaceService {
 
       if (!Array.isArray(data) || data.length === 0) break;
 
-      const orders = data.map((o: any) => ({
-        id: o.id_pedido?.toString(),
-        id_pedido: o.id_pedido,
-        id_seller: o.id_seller,
-        status: o.status,
-        valor_total: parseFloat(o.valor_total) || 0,
-        data_pedido: o.data_pedido
-          ? new Date(o.data_pedido).toISOString()
-          : new Date().toISOString(),
-        data_entrega: o.data_entrega
-          ? new Date(o.data_entrega).toISOString()
-          : null,
+      const orders = data.map((order: any) => ({
+        id: order.id_pedido?.toString() || order.id,
+        id_pedido: order.id_pedido,
+        id_seller: order.id_seller,
+        status: order.status,
+        valor_total: parseFloat(order.valor_total) || 0,
+        data_pedido: new Date(order.data_pedido).toISOString(),
+        data_entrega: order.data_entrega
+          ? new Date(order.data_entrega).toISOString()
+          : undefined,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       }));
@@ -210,7 +208,7 @@ export class MarketplaceService {
   // ORDER DETAIL
   // ===============================
 
-  async getOrderDetail(orderId: number): Promise<OrderDetail> {
+  async getOrderDetail(userId: string, orderId: number): Promise<OrderDetail> {
 
     const response = await mmApiClient.get(`/v1/pedido/${orderId}`);
 
@@ -263,7 +261,7 @@ export class MarketplaceService {
       data_pedido: new Date(order.data_pedido).toISOString(),
       data_entrega: order.data_entrega
         ? new Date(order.data_entrega).toISOString()
-        : null,
+        : undefined,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
