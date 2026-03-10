@@ -2,8 +2,15 @@ import axios from 'axios';
 import { query } from '../database/connection';
 import { Product, Order, OrderDetail } from '../types';
 
-const MM_API_URL = process.env.MADEIRAMADEIRA_API_URL || 'https://marketplace.madeiramadeira.com.br';
+const MM_API_URL =
+  process.env.MADEIRAMADEIRA_API_URL ||
+  'https://marketplace.madeiramadeira.com.br';
 const MM_TOKEN = process.env.MADEIRAMADEIRA_TOKEN;
+
+if (!MM_TOKEN) {
+  // Warn instead of throw to prevent app crash if env var is missing during build/startup
+  console.warn("⚠️ MADEIRAMADEIRA_TOKEN não configurado nas variáveis de ambiente");
+}
 
 const mmApiClient = axios.create({
   baseURL: MM_API_URL,
@@ -14,14 +21,32 @@ const mmApiClient = axios.create({
   timeout: 15000,
 });
 
+mmApiClient.interceptors.request.use((config) => {
+  console.log("➡️ MM Request:", `${config.baseURL}${config.url}`);
+  return config;
+});
+
+mmApiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    console.error("❌ MM API RESPONSE ERROR:");
+    console.error("URL:", error.config?.url);
+    console.error("STATUS:", error.response?.status);
+    console.error("DATA:", JSON.stringify(error.response?.data || {}, null, 2));
+    throw error;
+  }
+);
+
 export class MarketplaceService {
   async fetchProducts(userId: string, limit: number = 100, offset: number = 0): Promise<Product[]> {
     try {
       console.log(`📦 Fetching products (limit: ${limit}, offset: ${offset})`);
-      const response = await mmApiClient.get(`/v1/produto/situacao/publicados?limit=${limit}&offset=${offset}`);
+      const response = await mmApiClient.get(`/v1/produto/publicado?limit=${limit}&offset=${offset}`);
 
-      if (response.data?.data && Array.isArray(response.data.data)) {
-        const products = response.data.data.map((product: any) => ({
+      const responseData = response.data?.data || response.data || [];
+
+      if (Array.isArray(responseData)) {
+        const products = responseData.map((product: any) => ({
           id: product.id_produto || product.id,
           id_produto_seller: product.id_produto_seller,
           sku: product.sku,
@@ -57,7 +82,11 @@ export class MarketplaceService {
 
       return [];
     } catch (error: any) {
-      console.error('❌ Error fetching products from Marketplace:', error.message);
+      console.error(
+        "❌ MM API ERROR:",
+        error.response?.status,
+        error.response?.data || error.message
+      );
       throw error;
     }
   }
@@ -67,8 +96,10 @@ export class MarketplaceService {
       console.log(`📋 Fetching orders (limit: ${limit}, offset: ${offset})`);
       const response = await mmApiClient.get(`/v1/pedido?limit=${limit}&offset=${offset}`);
 
-      if (response.data?.data && Array.isArray(response.data.data)) {
-        const orders = response.data.data.map((order: any) => ({
+      const responseData = response.data?.data || response.data || [];
+
+      if (Array.isArray(responseData)) {
+        const orders = responseData.map((order: any) => ({
           id: order.id_pedido?.toString() || order.id,
           id_pedido: order.id_pedido,
           id_seller: order.id_seller || '',
@@ -123,7 +154,11 @@ export class MarketplaceService {
 
         const valor_frete = parseFloat(order.valor_frete) || 0;
         const desconto_percentual = parseFloat(order.desconto_percentual) || 0;
-        const desconto_valor = parseFloat(order.desconto_valor) || desconto_percentual > 0 ? (order.valor_total * desconto_percentual) / 100 : 0;
+        const desconto_valor = 
+          parseFloat(order.desconto_valor) || 
+          (desconto_percentual > 0 
+            ? (parseFloat(order.valor_total) * desconto_percentual) / 100 
+            : 0);
         const valor_liquido = parseFloat(order.valor_total) - desconto_valor;
 
         // Taxa padrão de plataforma MadeiraMadeira
