@@ -30,7 +30,7 @@ services:
     staticPublishPath: ./frontend/dist
     envVars:
       - key: VITE_API_URL
-        value: https://madeiraapi.onrender.com
+        value: https://madeiramadeira-api.onrender.com
 
 databases:
   - name: madeiramadeira-db
