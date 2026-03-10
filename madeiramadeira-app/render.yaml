@@ -1,0 +1,39 @@
+services:
+  - type: web
+    name: madeiramadeira-api
+    runtime: node
+    buildCommand: npm run build
+    startCommand: npm -w backend run start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3001
+      - key: DATABASE_URL
+        fromDatabase:
+          name: madeiramadeira-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: MADEIRAMADEIRA_TOKEN
+        value: MMKTP18042018145802
+      - key: MADEIRAMADEIRA_API_URL
+        value: https://marketplace.madeiramadeira.com.br
+      - key: MADEIRAMADEIRA_SANDBOX_URL
+        value: https://marketplace-sandbox.madeiramadeira.com.br
+
+  - type: web
+    name: madeiramadeira-web
+    runtime: node
+    buildCommand: npm -w frontend run build
+    startCommand: npm -w frontend run preview
+    routes:
+      - path: /
+        destination: http://localhost:3000
+
+databases:
+  - name: madeiramadeira-db
+    plan: free
+    region: oregon
