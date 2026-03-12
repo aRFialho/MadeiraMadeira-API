@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <link rel="stylesheet" href="/ml/css/dashboard.css">
+  <title>Validar Dimensões</title>
+</head>
+<body>
+
+  <header class="account-bar">
+  <div class="account-bar__left">
+    <a class="brand" href="/ml/dashboard" aria-label="DAVANTTI">
+      <img
+        src="/ml/img/davantti.png"
+        alt="DAVANTTI"
+        class="brand__logo"
+        width="170"
+        height="42"
+        decoding="async"
+        loading="eager"
+      />
+    </a>
+  </div>
+  <div class="account-bar__right">
+    <div class="account-bar__current">
+      <span class="lbl">Conta:</span>
+      <span id="account-current" class="val">Carregando...</span>
+    </div>
+    <button id="btn-status" class="account-bar__status" title="Ver status do token">Status</button>
+    <button id="account-switch" class="account-bar__switch" title="Trocar de conta">Trocar Conta</button>
+  </div>
+</header>
+
+<!-- NAV TABS -->
+  <nav class="main-nav">
+    <div class="tabs">
+      <button class="nav-tab" onclick="location.href=mlUrl('/dashboard#dashboard')">Dashboard</button>
+      <button class="nav-tab" onclick="location.href=mlUrl('/dashboard#anuncios')">Anúncios</button>
+      <button class="nav-tab  active" onclick="location.href=mlUrl('/dashboard#produtos')">Alterações Massivas</button>
+      <button class="nav-tab" onclick="location.href=mlUrl('/dashboard#ia')">IA & Analytics</button>
+      <button class="nav-tab" onclick="location.href=mlUrl('/dashboard#publicidade')">Publicidade</button>
+      <button class="nav-tab" onclick="location.href=mlUrl('/dashboard#benchmarking')">Benchmarking</button>
+      <button class="nav-tab" onclick="location.href=mlUrl('/dashboard#alertas')">Alertas</button>
+      <button class="nav-tab" onclick="location.href=mlUrl('/dashboard#ml')">ML</button>
+      <button class="nav-tab" onclick="location.href=mlUrl('/full')">FULL</button>
+      <button class="nav-tab" onclick="location.href=mlUrl('/dashboard#admin')">Admin</button>
+    </div>
+  </nav>
+
+  <!-- Modal de Status (token) -->
+  <div id="modal-status" class="modal">
+    <div class="modal-content">
+      <div class="modal-header alt">
+        <h3>🟢 Status da Integração</h3>
+        <span class="close" data-close-modal="status">&times;</span>
+      </div>
+      <div class="modal-body">
+        <div class="status-grid">
+          <div class="stat-mini"><h4 id="status-usuario">—</h4><p>Usuário</p></div>
+          <div class="stat-mini"><h4 id="status-token">—</h4><p>Token (preview)</p></div>
+          <div class="stat-mini"><h4 id="status-msg">—</h4><p>Mensagem</p></div>
+        </div>
+        <div class="modal-controls">
+          <button class="btn-small btn-primary" data-action="verificar-token">🔍 Verificar</button>
+          <button class="btn-small btn-success" data-action="renovar-token">🔄 Renovar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONTEÚDO PRINCIPAL -->
+  <main class="page-wrap">
+    <section class="tab-page active">
+      <div class="container">
+
+        <h1>📦 Validar dimensões (MLB)</h1>
+        <p class="sub">
+          Informe um MLB (unitário) ou cole uma lista para análise em massa. Apenas itens da
+          <strong>conta selecionada</strong> serão considerados.
+        </p>
+
+        <!-- Inputs -->
+        <section class="inputs">
+          <!-- MLB único -->
+          <div class="card">
+            <h3>🔸 MLB único</h3>
+            <div class="row">
+              <input id="dim-mlb-single" type="text" placeholder="Ex.: MLB1234567890" />
+              <button class="btn btn-primary" id="btn-dim-analisar-um">Analisar</button>
+            </div>
+          </div>
+
+          <!-- Lote -->
+          <div class="card">
+            <h3>🧱 Lote de MLBs</h3>
+            <textarea
+              id="dim-mlb-bulk"
+              rows="8"
+              placeholder="Cole um MLB por linha&#10;MLB123...&#10;MLB456..."
+            ></textarea>
+
+            <div class="row">
+              <label class="lbl-sm">
+                Intervalo entre requisições:
+                <input id="dim-delay-ms" type="number" min="0" value="300" /> ms
+              </label>
+              <button class="btn btn-success" id="btn-dim-analisar-lote">Iniciar Lote</button>
+            </div>
+
+            <div class="progress">
+              <div class="progress__fill" id="dim-progress-bar" style="width:0%"></div>
+            </div>
+            <div class="progress__text">
+              <span id="dim-progress-text">0 / 0</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- Resultados -->
+        <section class="results card">
+          <div class="results__header">
+            <h3>Resultados</h3>
+            <button class="btn btn-secondary" id="btn-dim-download" disabled>
+              ⬇️ Baixar CSV
+            </button>
+          </div>
+
+          <div class="table-wrap">
+            <table class="table" id="dim-results-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>MLB</th>
+                  <th>Altura (cm)</th>
+                  <th>Largura (cm)</th>
+                  <th>Comprimento (cm)</th>
+                  <th>Peso (g)</th>
+                  <th>Bruto (shipping.dimensions)</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="dim-results-body">
+                <tr>
+                  <td colspan="8" style="text-align:center;color:#6b7280;">
+                    Sem resultados ainda
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <!-- Paginação da tabela de dimensões -->
+<div class="dim-pagination-bar">
+  <button
+    id="dim-page-prev"
+    type="button"
+    class="btn btn-secondary btn-xs"
+    disabled
+  >
+    ‹
+  </button>
+
+  <span id="dim-page-label" class="dim-page-label">
+    Página 1 de 1
+  </span>
+
+  <button
+    id="dim-page-next"
+    type="button"
+    class="btn btn-secondary btn-xs"
+    disabled
+  >
+    ›
+  </button>
+</div>
+
+        </section>
+
+      </div>
+    </section>
+  </main>
+
+  <script src="/ml/js/ml-base.js"></script>
+  <script src="/ml/js/account-bar.js" defer></script>
+  <!-- JS separado -->
+  <script src="/ml/js/validar-dimensoes.js" defer></script>
+</body>
+</html>

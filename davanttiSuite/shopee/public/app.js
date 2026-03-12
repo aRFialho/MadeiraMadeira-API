@@ -1,0 +1,3908 @@
+let PRODUCTS_PAGE = 1;
+let PRODUCTS_PAGE_SIZE = 50;
+let PRODUCTS_TOTAL_PAGES = 1;
+let PRODUCTS_Q = "";
+let PRODUCTS_SORT_BY = "updatedAt";
+let PRODUCTS_SORT_DIR = "desc";
+let GEO_STATIC = null;
+let ME = null; // cache do /me
+let ACTIVE_SHOP_ID = null; // Shop.id (DB) vindo da sessão
+let ORDERS_PAGE = 1;
+let ORDERS_PAGE_SIZE = 60;
+let ORDERS_TOTAL_PAGES = 1;
+let ORDERS_TOTAL = 0;
+let DASH_CHART_MONTH = null;
+let DASH_CHART_TODAY = null;
+let DASH_CHART_MONTH_RATIO = null;
+let SEO_GOOGLE_CMP_CHART = null;
+let SEO_GOOGLE_CMP_BARS = null;
+let PRODUCTS_SORT_BOUND = false;
+let PRODUCTS_TOOLBAR_BOUND = false;
+
+// Para Opção A: manter rotas /shops/:shopId/... mas backend ignora.
+// Usamos um placeholder fixo só para completar a URL.
+const SHOP_PATH_PLACEHOLDER = "active";
+
+function formatBRLFixed90(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return "—";
+  return (n + 0.9).toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  });
+}
+
+function formatBRLCents(cents) {
+  const n = Number(cents || 0) / 100;
+  return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+function $(sel) {
+  return document.querySelector(sel);
+}
+function $all(sel) {
+  return Array.from(document.querySelectorAll(sel));
+}
+
+function setText(id, text) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = String(text ?? "");
+}
+
+const SEO_REF_KEY = "seo_ref_product";
+
+function getSeoRefProduct() {
+  try {
+    const raw = localStorage.getItem(SEO_REF_KEY);
+    if (!raw) return null;
+    const obj = JSON.parse(raw);
+    if (!obj?.itemId) return null;
+    return obj;
+  } catch {
+    return null;
+  }
+}
+
+function setSeoRefProduct(p) {
+  if (!p) {
+    localStorage.removeItem(SEO_REF_KEY);
+    return;
+  }
+  localStorage.setItem(
+    SEO_REF_KEY,
+    JSON.stringify({
+      itemId: String(p.itemId),
+      title: p.title || null,
+      imageUrl: p.imageUrl || null,
+    }),
+  );
+}
+
+function initProductsSort() {
+  if (PRODUCTS_SORT_BOUND) return;
+  PRODUCTS_SORT_BOUND = true;
+
+  const sel = document.getElementById("products-sort");
+  if (!sel) return;
+
+  // valor inicial (respeita estado atual)
+  sel.value = `${PRODUCTS_SORT_BY}:${PRODUCTS_SORT_DIR}`;
+
+  sel.addEventListener("change", async () => {
+    const [by, dir] = String(sel.value || "updatedAt:desc").split(":");
+    PRODUCTS_SORT_BY = by || "updatedAt";
+    PRODUCTS_SORT_DIR = dir === "asc" ? "asc" : "desc";
+    PRODUCTS_PAGE = 1;
+    await loadProducts();
+  });
+}
+
+async function apiGet(path) {
+  const r = await fetch(path, { credentials: "include" });
+  const text = await r.text();
+  if (!r.ok) throw new Error(text || `HTTP ${r.status}`);
+  return text ? JSON.parse(text) : null;
+}
+
+async function apiPost(path, body) {
+  const r = await fetch(path, {
+    method: "POST",
+    credentials: "include",
+    headers: body ? { "Content-Type": "application/json" } : undefined,
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const text = await r.text();
+  if (!r.ok) throw new Error(text || `HTTP ${r.status}`);
+  return text ? JSON.parse(text) : null;
+}
+
+function initSeoGoogleCompare() {
+  document
+    .getElementById("btnSeoCmp")
+    ?.addEventListener("click", runSeoCompare);
+  document.getElementById("seoCmpTerms")?.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") runSeoCompare();
+  });
+}
+
+async function runSeoCompare() {
+  const termsRaw = String(
+    document.getElementById("seoCmpTerms")?.value || "",
+  ).trim();
+  const period = String(document.getElementById("seoPeriod")?.value || "30d"); // reaproveita período do Google
+  const msg = document.getElementById("seoCmpMsg");
+
+  if (!termsRaw) {
+    if (msg) msg.textContent = "Digite 2 a 4 palavras separadas por vírgula.";
+    return;
+  }
+
+  if (msg) msg.textContent = "Carregando comparação…";
+
+  try {
+    const data = await apiGet(
+      `/seo/compare?terms=${encodeURIComponent(termsRaw)}&period=${encodeURIComponent(period)}`,
+    );
+    if (data?.trends?.ok === false) {
+      if (msg)
+        msg.textContent =
+          data?.message || "Google Trends indisponível no momento.";
+      if (SEO_GOOGLE_CMP_CHART) {
+        SEO_GOOGLE_CMP_CHART.destroy();
+        SEO_GOOGLE_CMP_CHART = null;
+      }
+      if (SEO_GOOGLE_CMP_BARS) {
+        SEO_GOOGLE_CMP_BARS.destroy();
+        SEO_GOOGLE_CMP_BARS = null;
+      }
+      const b = document.getElementById("seoCmpWinner");
+      if (b) {
+        b.className = "badge badge--gray";
+        b.textContent = "Indisponível";
+      }
+      return;
+    }
+    const terms = data?.terms || [];
+    const series = data?.series || [];
+    if (!terms.length || !series.length) {
+      if (msg) msg.textContent = "Sem dados para comparar.";
+      if (SEO_GOOGLE_CMP_CHART) {
+        SEO_GOOGLE_CMP_CHART.destroy();
+        SEO_GOOGLE_CMP_CHART = null;
+      }
+      if (SEO_GOOGLE_CMP_BARS) {
+        SEO_GOOGLE_CMP_BARS.destroy();
+        SEO_GOOGLE_CMP_BARS = null;
+      }
+      const b = document.getElementById("seoCmpWinner");
+      if (b) {
+        b.className = "badge badge--gray";
+        b.textContent = "—";
+      }
+      return;
+    }
+
+    // labels = datas (usa a 1ª série como referência)
+    const points0 = series[0]?.points || [];
+    const labels = points0.map((p) => {
+      const d = new Date(Number(p.time || 0));
+      return d.toLocaleDateString("pt-BR", {
+        day: "2-digit",
+        month: "2-digit",
+      });
+    });
+
+    const palette = ["#60a5fa", "#f97316", "#34d399", "#f472b6"];
+
+    const datasets = series.map((s, i) => ({
+      label: s.term,
+      data: (s.points || []).map((p) => Number(p.value || 0)),
+      borderColor: palette[i % palette.length],
+      backgroundColor: palette[i % palette.length] + "33",
+      tension: 0.25,
+      pointRadius: 0,
+      borderWidth: 2,
+      fill: false,
+    }));
+
+    // mensagem-resumo: quem tem maior média (mais “relevante” no período)
+    const summary = data?.summary || {};
+
+    // pesos do score (ajuste aqui)
+    const W_AVG = 0.7;
+    const W_MAX = 0.3;
+
+    const scored = terms
+      .map((t) => {
+        const avg = Number(summary?.[t]?.avg ?? 0);
+        const max = Number(summary?.[t]?.max ?? 0);
+        const score = Math.round((W_AVG * avg + W_MAX * max) * 10) / 10; // 0–100
+        return { term: t, avg, max, score };
+      })
+      .sort((a, b) => b.score - a.score);
+
+    const winner = scored[0] || null;
+
+    // Mensagem-resumo
+    if (msg) {
+      msg.textContent = winner
+        ? `Melhor score no período: "${winner.term}" (score ${winner.score} = ${W_AVG}×avg + ${W_MAX}×max).`
+        : "Sem dados para comparar.";
+    }
+
+    // Badge do vencedor
+    const winnerEl = document.getElementById("seoCmpWinner");
+    if (winnerEl) {
+      winnerEl.className = "badge badge--top";
+      winnerEl.textContent = winner
+        ? `Top: ${winner.term} (${winner.score})`
+        : "—";
+    }
+    // --- gráfico 2: barras avg e max ---
+    const labels2 = terms.map((t) => wrapChartLabel(t, 16));
+    const avgData = terms.map((t) => Number(summary?.[t]?.avg ?? 0));
+    const maxData = terms.map((t) => Number(summary?.[t]?.max ?? 0));
+
+    const ctx2 = document.getElementById("seoCmpBars")?.getContext("2d");
+    if (ctx2) {
+      if (SEO_GOOGLE_CMP_BARS) SEO_GOOGLE_CMP_BARS.destroy();
+
+      SEO_GOOGLE_CMP_BARS = new Chart(ctx2, {
+        type: "bar",
+        data: {
+          labels: labels2,
+          datasets: [
+            {
+              label: "Média (avg)",
+              data: avgData,
+              backgroundColor: "rgba(96,165,250,0.22)",
+              borderColor: "rgba(96,165,250,0.45)",
+              borderWidth: 1,
+              borderRadius: 8,
+            },
+            {
+              label: "Pico (max)",
+              data: maxData,
+              backgroundColor: "rgba(249,115,22,0.22)",
+              borderColor: "rgba(249,115,22,0.45)",
+              borderWidth: 1,
+              borderRadius: 8,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { labels: { color: "rgba(255,255,255,0.75)" } },
+            tooltip: {
+              callbacks: {
+                label: (ctx) =>
+                  `${ctx.dataset.label}: ${Number(ctx.raw || 0).toFixed(1)}`,
+              },
+            },
+          },
+          scales: {
+            x: {
+              ticks: { color: "rgba(255,255,255,0.75)", maxRotation: 0 },
+              grid: { display: false },
+            },
+            y: {
+              ticks: { color: "rgba(255,255,255,0.75)" },
+              grid: { color: "rgba(255,255,255,0.08)" },
+              suggestedMin: 0,
+              suggestedMax: 100,
+            },
+          },
+        },
+      });
+    }
+    const ctx = document.getElementById("seoCmpChart")?.getContext("2d");
+    if (!ctx) return;
+
+    if (SEO_GOOGLE_CMP_CHART) SEO_GOOGLE_CMP_CHART.destroy();
+    SEO_GOOGLE_CMP_CHART = new Chart(ctx, {
+      type: "line",
+      data: { labels, datasets },
+      options: {
+        responsive: true,
+        plugins: { legend: { labels: { color: "rgba(255,255,255,0.75)" } } },
+        scales: {
+          x: {
+            ticks: { color: "rgba(255,255,255,0.75)", maxRotation: 0 },
+            grid: { display: false },
+          },
+          y: {
+            ticks: { color: "rgba(255,255,255,0.75)" },
+            grid: { color: "rgba(255,255,255,0.08)" },
+            suggestedMin: 0,
+            suggestedMax: 100,
+          },
+        },
+      },
+    });
+  } catch (e) {
+    if (msg) msg.textContent = `Erro: ${String(e?.message || e)}`;
+  }
+}
+
+/* ---------------- Tabs ---------------- */
+function initTabs() {
+  const tabs = $all(".tab");
+  const panels = $all(".tab-panel");
+
+  tabs.forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const tab = btn.dataset.tab;
+
+      tabs.forEach((b) => b.classList.toggle("active", b === btn));
+      panels.forEach((p) =>
+        p.classList.toggle("active", p.id === `tab-${tab}`),
+      );
+
+      // garante loja ativa antes de carregar módulos
+
+      if (tab === "products" || tab === "orders" || tab === "geo-sales") {
+        await ensureShopSelected();
+      }
+
+      if (tab === "products") {
+        initProductsSort();
+        loadProducts();
+      }
+      if (tab === "orders") loadOrders();
+      if (tab === "admin") loadAdmin();
+      if (tab === "geo-sales") loadGeoSales();
+      if (tab === "dashboard") loadDashboard();
+      if (tab === "seo") openSeoHome();
+    });
+  });
+}
+function renderSeoList(rootId, rows, { rightLabelFn, barPctFn } = {}) {
+  const root = document.getElementById(rootId);
+  if (!root) return;
+
+  if (!rows?.length) {
+    root.innerHTML = `<div class="muted">Sem dados.</div>`;
+    return;
+  }
+
+  root.innerHTML = rows
+    .slice(0, 20)
+    .map((r) => {
+      const term = escapeHtml(r.term || r.uf || r.text || "—");
+      const sub = r.sub ? escapeHtml(r.sub) : "";
+      const right = rightLabelFn ? escapeHtml(rightLabelFn(r)) : "";
+      const pct = barPctFn
+        ? Math.max(0, Math.min(100, Number(barPctFn(r) || 0)))
+        : null;
+
+      return `
+        <div class="seo-row">
+          <div class="seo-row__left" style="min-width:0;">
+            <div class="seo-row__term">${term}</div>
+            ${sub ? `<div class="seo-row__sub">${sub}</div>` : ""}
+            ${
+              pct != null
+                ? `<div class="seo-bar"><div style="width:${pct.toFixed(1)}%"></div></div>`
+                : ""
+            }
+          </div>
+          <div class="seo-row__right">${right}</div>
+        </div>
+      `;
+    })
+    .join("");
+}
+
+async function loadSeoKeywords() {
+  const q = String(document.getElementById("seoQ")?.value || "").trim();
+  const period = String(document.getElementById("seoPeriod")?.value || "30d");
+  const msg = document.getElementById("seoMsg");
+
+  if (!q) {
+    if (msg) msg.textContent = "Digite uma palavra para buscar.";
+    return;
+  }
+
+  if (msg) msg.textContent = "Carregando…";
+
+  try {
+    const data = await apiGet(
+      `/seo/keywords?q=${encodeURIComponent(q)}&period=${encodeURIComponent(period)}`,
+    );
+
+    if (msg) {
+      msg.textContent =
+        data?.trends?.ok === false
+          ? "Trends indisponível no momento (bloqueio/consent). Exibindo sugestões do Google."
+          : "";
+    }
+
+    renderSeoList(
+      "seoTopList",
+      (data?.related?.top || []).map((x) => ({
+        term: x.term,
+        score: Number(x.score || 0),
+        sub: "Trends • Top",
+      })),
+      {
+        rightLabelFn: (r) => String(r.score || 0),
+        barPctFn: (r) => (Number(r.score || 0) / 100) * 100,
+      },
+    );
+
+    renderSeoList(
+      "seoRisingList",
+      (data?.related?.rising || []).map((x) => ({
+        term: x.term,
+        growthPct: x.growthPct,
+        sub: "Trends • Rising",
+      })),
+      {
+        rightLabelFn: (r) =>
+          r.growthPct == null
+            ? "—"
+            : Number(r.growthPct) >= 9999
+              ? "Breakout"
+              : `${r.growthPct}%`,
+      },
+    );
+
+    renderSeoList(
+      "seoUfList",
+      (data?.byUf || []).map((x) => ({
+        uf: x.uf,
+        interest: Number(x.interest || 0),
+        sub: "BR • UF",
+      })),
+      {
+        rightLabelFn: (r) => `${r.interest}`,
+        barPctFn: (r) => (Number(r.interest || 0) / 100) * 100,
+      },
+    );
+
+    renderSeoList(
+      "seoSuggestList",
+      (data?.suggestions || []).map((t) => ({
+        text: t,
+        sub: "Autocomplete",
+      })),
+      {
+        rightLabelFn: () => "",
+      },
+    );
+
+    if (msg && data?.trends?.ok !== false) msg.textContent = "";
+  } catch (e) {
+    if (msg) msg.textContent = `Erro: ${String(e?.message || e)}`;
+  }
+}
+
+function showSeoView(view) {
+  const home = document.getElementById("seoHome");
+  const g = document.getElementById("seoGoogleView");
+  const s = document.getElementById("seoShopeeView");
+
+  if (home) home.style.display = view === "home" ? "" : "none";
+  if (g) g.style.display = view === "google" ? "" : "none";
+  if (s) s.style.display = view === "shopee" ? "" : "none";
+}
+
+function openSeoHome() {
+  showSeoView("home");
+}
+
+function openSeoGoogle() {
+  showSeoView("google");
+}
+
+function openSeoShopee() {
+  showSeoView("shopee");
+  ensureShopeeTrendsUi(); // cria UI dentro de seoShopeeRoot (abaixo)
+  // opcional: se já tiver produto ref, carregar automático
+  const ref = getSeoRefProduct();
+  if (ref?.itemId) loadSeoShopeeRecommendations({ ref, q: "" });
+}
+
+function initSeo() {
+  document
+    .getElementById("btnSeoOpenGoogle")
+    ?.addEventListener("click", openSeoGoogle);
+  document
+    .getElementById("btnSeoOpenShopee")
+    ?.addEventListener("click", openSeoShopee);
+
+  document
+    .getElementById("btnSeoBackFromGoogle")
+    ?.addEventListener("click", openSeoHome);
+  document
+    .getElementById("btnSeoBackFromShopee")
+    ?.addEventListener("click", openSeoHome);
+
+  // Google (continua igual)
+  document
+    .getElementById("btnSeoSearch")
+    ?.addEventListener("click", loadSeoKeywords);
+  document.getElementById("seoQ")?.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") loadSeoKeywords();
+  });
+  initSeoGoogleCompare();
+}
+
+function ensureShopeeTrendsUi() {
+  const root = document.getElementById("seoShopeeRoot");
+  if (!root) return;
+  if (document.getElementById("seoShopeeMeta")) return; // já criado
+
+  root.innerHTML = `
+  <div class="section-card">
+    <div class="section-card__header">
+      <div>
+        <div class="section-title">ShopeeTrends <span id="seoShopeeCompet" class="badge badge--gray" style="margin-left:8px">—</span></div>
+        <div class="muted" id="seoShopeeMeta">—</div>
+      </div>
+
+      <div class="section-actions" style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
+        <div class="field">
+          <label class="muted" for="seoShopeeQ">Palavra (opcional)</label>
+          <input id="seoShopeeQ" class="input" placeholder="Ex.: poltrona" />
+        </div>
+        <button id="btnSeoShopeeSearch" class="btn btn-primary" type="button">Buscar</button>
+
+        <button id="btnSeoPickRefProduct" class="btn btn-ghost" type="button">Produto referência</button>
+        <div id="seoRefPill" class="muted"></div>
+      </div>
+    </div>
+
+    <div class="section-card__body">
+      <div id="seoShopeeMsg" class="muted" style="margin-bottom:10px"></div>
+
+      <div class="section-grid" style="grid-template-columns:1fr 1fr;gap:12px">
+        <div class="section-card" style="margin:0">
+          <div class="section-card__header"><div class="section-title">Top 10 por volume</div></div>
+          <div class="section-card__body"><canvas id="seoBidChart" height="140"></canvas></div>
+        </div>
+
+        <div class="section-card" style="margin:0">
+          <div class="section-card__header"><div class="section-title">Volume × Qualidade</div></div>
+          <div class="section-card__body"><canvas id="seoScatterChart" height="140"></canvas></div>
+        </div>
+      </div>
+
+      <div class="seo-grid" style="margin-top:12px">
+        <div class="seo-card">
+          <div class="seo-card__head">
+            <div class="seo-card__title">Top por volume</div>
+            <div class="seo-card__right muted">Vol/QS/Bid</div>
+          </div>
+          <div id="seoShopeeVolList" class="seo-list"></div>
+        </div>
+
+        <div class="seo-card">
+          <div class="seo-card__head">
+            <div class="seo-card__title">Top por qualidade</div>
+            <div class="seo-card__right muted">QS/Vol/Bid</div>
+          </div>
+          <div id="seoShopeeQualList" class="seo-list"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+`;
+
+  document
+    .getElementById("btnSeoPickRefProduct")
+    ?.addEventListener("click", openSeoRefPicker);
+
+  document
+    .getElementById("btnSeoShopeeSearch")
+    ?.addEventListener("click", () => {
+      const ref = getSeoRefProduct();
+      const q = String(
+        document.getElementById("seoShopeeQ")?.value || "",
+      ).trim();
+      loadSeoShopeeRecommendations({ ref, q });
+    });
+
+  document.getElementById("seoShopeeQ")?.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      const ref = getSeoRefProduct();
+      const q = String(
+        document.getElementById("seoShopeeQ")?.value || "",
+      ).trim();
+      loadSeoShopeeRecommendations({ ref, q });
+    }
+  });
+
+  renderSeoRefPill();
+}
+
+/* ---------------- Modal ---------------- */
+function openModal(title, html) {
+  $("#modal-title").textContent = title;
+  $("#modal-body").innerHTML = html;
+  $("#modal-overlay").style.display = "flex";
+}
+
+function closeModal() {
+  $("#modal-overlay").style.display = "none";
+  $("#modal-title").textContent = "";
+  $("#modal-body").innerHTML = "";
+}
+
+function initModal() {
+  $("#modal-close").addEventListener("click", closeModal);
+  $("#modal-overlay").addEventListener("click", (e) => {
+    if (e.target.id === "modal-overlay") closeModal();
+  });
+}
+
+function kv(k, v) {
+  return `<div class="kv"><div class="k">${escapeHtml(
+    k,
+  )}</div><div class="v">${v}</div></div>`;
+}
+
+function escapeHtml(s) {
+  return String(s ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function renderSeoRefPill() {
+  const pill = document.getElementById("seoRefPill");
+  if (!pill) return;
+
+  const ref = getSeoRefProduct();
+  if (!ref) {
+    pill.innerHTML = `<span class="badge badge--gray">Ref: nenhum</span>`;
+    return;
+  }
+
+  const title = escapeHtml(ref.title || "Item " + ref.itemId);
+  pill.innerHTML = `
+    <span class="badge badge--top">
+      Ref: ${title} (#${escapeHtml(ref.itemId)})
+      <button id="btnSeoRefClear" class="btn btn-ghost" type="button" style="margin-left:8px; padding:6px 10px">Limpar</button>
+    </span>
+  `;
+
+  document.getElementById("btnSeoRefClear")?.addEventListener("click", () => {
+    setSeoRefProduct(null);
+    renderSeoRefPill();
+  });
+}
+
+function openSeoRefPicker() {
+  openModal(
+    "Selecionar produto referência",
+    `
+      <div class="muted">Busque por nome ou <b>item_id</b> do produto.</div>
+      <div style="margin-top:12px; display:flex; gap:10px; flex-wrap:wrap;">
+        <input id="seoRefSearch" class="input" placeholder="Ex: tênis / 23393415543" style="min-width:260px" />
+        <button id="btnSeoRefDoSearch" class="btn btn-primary" type="button">Buscar</button>
+      </div>
+      <div id="seoRefMsg" class="muted" style="margin-top:10px;"></div>
+      <div id="seoRefResults" style="margin-top:10px;"></div>
+    `,
+  );
+
+  const run = async () => {
+    const q = String(
+      document.getElementById("seoRefSearch")?.value || "",
+    ).trim();
+    setText("seoRefMsg", "Carregando produtos...");
+    try {
+      const data = await apiGet(
+        `/shops/${SHOP_PATH_PLACEHOLDER}/seo/ref-products?q=${encodeURIComponent(q)}&limit=30`,
+      );
+
+      const items = data?.response?.items || [];
+      renderSeoRefResults(items);
+      setText("seoRefMsg", items.length ? "" : "Nenhum produto encontrado.");
+    } catch (e) {
+      setText("seoRefMsg", `Erro: ${String(e?.message || e)}`);
+      renderSeoRefResults([]);
+    }
+  };
+
+  document.getElementById("btnSeoRefDoSearch")?.addEventListener("click", run);
+  document.getElementById("seoRefSearch")?.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") run();
+  });
+
+  run();
+}
+
+function renderSeoRefResults(items) {
+  const box = document.getElementById("seoRefResults");
+  if (!box) return;
+
+  const safe = Array.isArray(items) ? items : [];
+
+  box.innerHTML =
+    safe
+      .map((it) => {
+        const title = escapeHtml(it.title || "Item " + it.itemId);
+        const img = it.imageUrl
+          ? `<img src="${escapeHtml(it.imageUrl)}" style="width:44px;height:44px;border-radius:10px;object-fit:cover" onerror="this.style.display='none'">`
+          : `<div style="width:44px;height:44px;border-radius:10px;background:rgba(255,255,255,0.06)"></div>`;
+
+        return `
+          <div class="section-card" data-seo-ref-item="${escapeHtml(String(it.itemId))}" style="margin:10px 0; cursor:pointer;">
+            <div class="section-card__body" style="display:flex; gap:12px; align-items:center;">
+              ${img}
+              <div style="min-width:0;">
+                <div style="font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${title}</div>
+                <div class="muted">item_id: ${escapeHtml(String(it.itemId))}</div>
+              </div>
+            </div>
+          </div>
+        `;
+      })
+      .join("") || `<div class="muted">Sem resultados.</div>`;
+
+  box.querySelectorAll("[data-seo-ref-item]").forEach((el) => {
+    el.addEventListener("click", () => {
+      const itemId = el.getAttribute("data-seo-ref-item");
+      const it = safe.find((x) => String(x.itemId) === String(itemId));
+      if (!it) return;
+
+      setSeoRefProduct(it);
+      closeModal();
+      renderSeoRefPill();
+
+      // ✅ busca imediatamente as recomendadas do item (sem keyword)
+      const qNow = String(
+        document.getElementById("seoShopeeQ")?.value || "",
+      ).trim();
+      loadSeoShopeeRecommendations({ ref: getSeoRefProduct(), q: qNow });
+    });
+  });
+}
+
+let SEO_CHART_VOL = null;
+let SEO_CHART_SCATTER = null;
+
+async function loadSeoShopeeRecommendations({ ref, q }) {
+  ensureShopeeTrendsUi(); // ✅ sempre garante o UI certo (Shopee view)
+
+  if (!ref?.itemId) {
+    setText("seoShopeeMeta", "Selecione um produto referência.");
+    setText("seoShopeeMsg", "");
+    const a = document.getElementById("seoShopeeVolList");
+    const b = document.getElementById("seoShopeeQualList");
+    if (a) a.innerHTML = `<div class="muted">Sem dados.</div>`;
+    if (b) b.innerHTML = `<div class="muted">Sem dados.</div>`;
+    return;
+  }
+
+  setText(
+    "seoShopeeMeta",
+    `Ref #${ref.itemId}${ref.title ? " • " + ref.title : ""}`,
+  );
+  setText("seoShopeeMsg", "Carregando recomendações Shopee...");
+
+  try {
+    const sh = await apiGet(
+      `/shops/${SHOP_PATH_PLACEHOLDER}/seo/shopee-recommended-keywords?itemId=${encodeURIComponent(ref.itemId)}&q=${encodeURIComponent(q || "")}`,
+    );
+
+    // ✅ Shopee pode devolver error/message mesmo com 200
+    if (sh?.error && String(sh.error).trim() !== "") {
+      throw new Error(`${sh.error}${sh?.message ? `: ${sh.message}` : ""}`);
+    }
+
+    const byVol = sh?.response?.rankings?.by_volume || [];
+    const byQual = sh?.response?.rankings?.by_quality || [];
+    const rankVol = sh?.response?.rankings?.rank_by_volume;
+    const rankQual = sh?.response?.rankings?.rank_by_quality;
+
+    const maxVol = Math.max(
+      1,
+      ...byVol.map((x) => Number(x.search_volume || 0)),
+    );
+    const all = sh?.response?.suggested_keywords || [];
+    const bids = all
+      .map((x) => Number(x.suggested_bid))
+      .filter(Number.isFinite);
+    const vols = all
+      .map((x) => Number(x.search_volume))
+      .filter(Number.isFinite);
+    const qss = all.map((x) => Number(x.quality_score)).filter(Number.isFinite);
+
+    const bidMed = median(bids);
+    const topVol = vols.length ? Math.max(...vols) : null;
+    const avgQS = qss.length
+      ? qss.reduce((a, b) => a + b, 0) / qss.length
+      : null;
+
+    const tBid = tierBid(bidMed);
+    const demand = tierDemand(topVol);
+
+    const compEl = document.getElementById("seoShopeeCompet");
+    if (compEl) {
+      compEl.className = `badge ${tBid.cls || "badge--gray"}`;
+      compEl.textContent =
+        bidMed == null
+          ? "—"
+          : `CPC: ${tBid.label} • ${fmtBRL(bidMed)} • Demanda: ${demand}`;
+    }
+
+    renderShopeeCharts(all);
+
+    if (q) {
+      setText(
+        "seoShopeeMsg",
+        `Colocação de "${q}": volume ${rankVol ? "#" + rankVol : "—"} • qualidade ${rankQual ? "#" + rankQual : "—"}`,
+      );
+    } else {
+      setText("seoShopeeMsg", "Recomendadas para o produto referência.");
+    }
+
+    renderSeoList(
+      "seoShopeeVolList",
+      byVol.slice(0, 20).map((x) => ({
+        term: x.keyword,
+        sub: `Vol: ${Number(x.search_volume || 0).toLocaleString("pt-BR")} • QS: ${x.quality_score ?? "—"} • Bid: ${x.suggested_bid != null ? fmtBRL(x.suggested_bid) : "—"}`,
+        vol: Number(x.search_volume || 0),
+      })),
+      {
+        rightLabelFn: () => "",
+        barPctFn: (r) => (Number(r.vol || 0) / maxVol) * 100,
+      },
+    );
+
+    renderSeoList(
+      "seoShopeeQualList",
+      byQual.slice(0, 20).map((x) => ({
+        term: x.keyword,
+        sub: `QS: ${x.quality_score ?? "—"} • Vol: ${Number(x.search_volume || 0).toLocaleString("pt-BR")} • Bid: ${x.suggested_bid != null ? fmtBRL(x.suggested_bid) : "—"}`,
+      })),
+      { rightLabelFn: () => "" },
+    );
+  } catch (e) {
+    setText("seoShopeeMsg", `Erro Shopee: ${String(e?.message || e)}`);
+    const a = document.getElementById("seoShopeeVolList");
+    const b = document.getElementById("seoShopeeQualList");
+    if (a) a.innerHTML = `<div class="muted">Sem dados.</div>`;
+    if (b) b.innerHTML = `<div class="muted">Sem dados.</div>`;
+  }
+}
+
+function median(nums) {
+  const a = nums.filter((n) => Number.isFinite(n)).sort((x, y) => x - y);
+  if (!a.length) return null;
+  const m = Math.floor(a.length / 2);
+  return a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2;
+}
+
+function tierBid(bid) {
+  if (bid == null) return { label: "—", cls: "badge--gray" };
+  if (bid <= 2) return { label: "Baixa", cls: "badge--ok" };
+  if (bid <= 4) return { label: "Média", cls: "badge--warn" };
+  if (bid <= 8) return { label: "Alta", cls: "badge--warn" };
+  return { label: "Muito alta", cls: "badge--danger" };
+}
+
+function tierDemand(topVol) {
+  if (topVol == null) return "—";
+  if (topVol < 5000) return "Baixa";
+  if (topVol < 50000) return "Média";
+  if (topVol < 200000) return "Alta";
+  return "Muito alta";
+}
+
+function wrapChartLabel(text, maxLen = 14) {
+  const s = String(text || "").trim();
+  if (!s) return "—";
+
+  // quebra por espaços, mas também suporta palavras longas
+  const words = s.split(/\s+/).filter(Boolean);
+  const lines = [];
+  let line = "";
+
+  for (const w of words) {
+    if (!line) {
+      // palavra muito grande sozinha
+      if (w.length > maxLen) {
+        lines.push(w.slice(0, maxLen - 1) + "…");
+      } else {
+        line = w;
+      }
+      continue;
+    }
+
+    if ((line + " " + w).length <= maxLen) {
+      line += " " + w;
+    } else {
+      lines.push(line);
+      line = w.length > maxLen ? w.slice(0, maxLen - 1) + "…" : w;
+    }
+  }
+
+  if (line) lines.push(line);
+
+  // limite de linhas pra não estourar layout
+  if (lines.length > 3) {
+    return [
+      ...lines.slice(0, 2),
+      lines
+        .slice(2)
+        .join(" ")
+        .slice(0, maxLen - 1) + "…",
+    ];
+  }
+
+  return lines;
+}
+
+function renderShopeeCharts(all) {
+  // 1) Top 10 por volume (barra)
+  const top = [...all]
+    .sort((a, b) => Number(b.search_volume || 0) - Number(a.search_volume || 0))
+    .slice(0, 10);
+
+  const labels = top.map((x) => wrapChartLabel(x.keyword, 16));
+  const dataVol = top.map((x) => Number(x.search_volume || 0));
+
+  const ctxVol = document.getElementById("seoBidChart")?.getContext("2d");
+  if (ctxVol) {
+    if (SEO_CHART_VOL) SEO_CHART_VOL.destroy();
+    SEO_CHART_VOL = new Chart(ctxVol, {
+      type: "bar",
+      data: {
+        labels,
+        datasets: [
+          {
+            label: "Volume de busca",
+            data: dataVol,
+            backgroundColor: "rgba(255, 255, 255, 0.18)",
+            borderColor: "rgba(255, 255, 255, 0.30)",
+            borderWidth: 1,
+            borderRadius: 8,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: (ctx) =>
+                `${Number(ctx.raw || 0).toLocaleString("pt-BR")} buscas`,
+            },
+          },
+        },
+        scales: {
+          x: {
+            ticks: {
+              color: "rgba(255,255,255,0.75)",
+              maxRotation: 0,
+              minRotation: 0,
+            },
+            grid: { display: false },
+          },
+          y: {
+            ticks: { color: "rgba(255,255,255,0.75)" },
+            grid: { color: "rgba(255,255,255,0.08)" },
+          },
+        },
+      },
+    });
+  }
+
+  // 2) Bubble: X=QS, Y=Volume, raio ~ log(volume)
+  const points = all
+    .map((x) => {
+      const qs = Number(x.quality_score);
+      const vol = Number(x.search_volume);
+      if (!Number.isFinite(qs) || !Number.isFinite(vol)) return null;
+      const r = Math.max(3, Math.min(14, Math.log10(vol + 10) * 4));
+      return { x: qs, y: vol, r, _label: x.keyword };
+    })
+    .filter(Boolean);
+
+  const ctxSc = document.getElementById("seoScatterChart")?.getContext("2d");
+  if (ctxSc) {
+    if (SEO_CHART_SCATTER) SEO_CHART_SCATTER.destroy();
+    SEO_CHART_SCATTER = new Chart(ctxSc, {
+      type: "bubble",
+      data: {
+        datasets: [
+          {
+            label: "Keywords",
+            data: points,
+            backgroundColor: "rgba(255, 120, 0, 0.25)",
+            borderColor: "rgba(255, 120, 0, 0.45)",
+            borderWidth: 1,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              title: (items) =>
+                items?.[0]?.raw?._label ? String(items[0].raw._label) : "",
+              label: (item) => {
+                const p = item.raw;
+                return `QS: ${p.x} • Volume: ${Number(p.y).toLocaleString("pt-BR")}`;
+              },
+            },
+          },
+        },
+        scales: {
+          x: {
+            title: {
+              display: true,
+              text: "Quality Score",
+              color: "rgba(255,255,255,0.75)",
+            },
+            ticks: { color: "rgba(255,255,255,0.75)" },
+            grid: { color: "rgba(255,255,255,0.08)" },
+          },
+          y: {
+            title: {
+              display: true,
+              text: "Volume",
+              color: "rgba(255,255,255,0.75)",
+            },
+            ticks: { color: "rgba(255,255,255,0.75)" },
+            grid: { color: "rgba(255,255,255,0.08)" },
+          },
+        },
+      },
+    });
+  }
+}
+
+function fmtBRL(v) {
+  const n = Number(v);
+  if (!Number.isFinite(n)) return "—";
+  return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+/* ---------------- Auth + Shop Select ---------------- */
+async function loadMe() {
+  const data = await apiGet("/me");
+  ME = data;
+  ACTIVE_SHOP_ID = data?.activeShopId ?? null;
+
+  const accountName = data?.account?.name ? String(data.account.name) : "—";
+  const email = data?.user?.email ? String(data.user.email) : "—";
+
+  setText("auth-status", `Conta: ${accountName} • Usuário: ${email}`);
+
+  const viewStatus = document.getElementById("auth-status-view");
+  if (viewStatus) viewStatus.textContent = $("#auth-status")?.textContent || "";
+
+  const role = String(data?.user?.role || "");
+  const adminBtn = document.getElementById("admin-tab-btn");
+  const adminTitle = document.getElementById("admin-title");
+
+  const canSeeAdmin = role === "ADMIN" || role === "SUPER_ADMIN";
+  if (adminBtn) adminBtn.style.display = canSeeAdmin ? "" : "none";
+
+  if (adminTitle) {
+    adminTitle.textContent = role === "SUPER_ADMIN" ? "Admin Global" : "Admin";
+  }
+
+  const adminBtnLabel = adminBtn?.querySelector(".ml-nav-item__label");
+  if (adminBtnLabel) {
+    adminBtnLabel.textContent =
+      role === "SUPER_ADMIN" ? "Admin Global" : "Admin";
+  }
+}
+
+async function ensureShopSelected() {
+  if (!ME) {
+    await loadMe();
+  }
+
+  const shops = Array.isArray(ME?.shops) ? ME.shops : [];
+  const active = ME?.activeShopId ?? null;
+
+  if (shops.length === 0) {
+    openModal(
+      "Conectar Shopee",
+      `<div class="muted">Nenhuma loja vinculada a esta conta ainda.</div>
+       <div class="muted" style="margin-top:10px;">Conecte sua Shopee na aba Autenticação.</div>`,
+    );
+    return;
+  }
+
+  if (shops.length === 1 && !active) {
+    await apiPost("/auth/select-shop", { shopId: shops[0].id });
+    await loadMe();
+    return;
+  }
+
+  if (shops.length > 1 && !active) {
+    await promptSelectShop(shops);
+    await loadMe();
+    return;
+  }
+}
+
+// ---------------- Dashboard (NOVO) ----------------
+
+let DASH_MODE = "month"; // "month" | "today"
+let DASH_POLL = null;
+
+// Reaproveita seu DASH_CHART global existente
+// let DASH_CHART = null;
+
+function fmtBRL(v) {
+  const n = Number(v || 0);
+  return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+function fmtBRLCompact(v) {
+  const n = Number(v);
+  if (!Number.isFinite(n)) return "—";
+  return (
+    "R$ " +
+    new Intl.NumberFormat("pt-BR", {
+      notation: "compact",
+      maximumFractionDigits: 1,
+    }).format(n)
+  );
+}
+
+function fmtTimeNow() {
+  return new Date().toLocaleTimeString("pt-BR", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+}
+
+function setDashMode(mode) {
+  DASH_MODE = mode === "today" ? "today" : "month";
+
+  document
+    .getElementById("dashMonthLayout")
+    ?.classList.toggle("is-hidden", DASH_MODE !== "month");
+  document
+    .getElementById("dashTodayLayout")
+    ?.classList.toggle("is-hidden", DASH_MODE !== "today");
+
+  if (DASH_MODE === "today") {
+    if (DASH_CHART_MONTH) {
+      DASH_CHART_MONTH.destroy();
+      DASH_CHART_MONTH = null;
+    }
+    if (DASH_CHART_MONTH_RATIO) {
+      DASH_CHART_MONTH_RATIO.destroy();
+      DASH_CHART_MONTH_RATIO = null;
+    }
+  } else {
+    if (DASH_CHART_TODAY) {
+      DASH_CHART_TODAY.destroy();
+      DASH_CHART_TODAY = null;
+    }
+  }
+
+  const t = document.getElementById("dashLiveToggle");
+  if (t) t.checked = DASH_MODE === "today";
+
+  if (DASH_MODE === "today") {
+    if (DASH_POLL) clearInterval(DASH_POLL);
+    DASH_POLL = setInterval(() => loadDashboard({ silent: true }), 30000);
+  } else {
+    if (DASH_POLL) clearInterval(DASH_POLL);
+    DASH_POLL = null;
+  }
+}
+
+async function loadTopSellersMonth() {
+  const list = document.getElementById("dashTopSellersList");
+  if (!list) return;
+  list.innerHTML = `<div class="muted">Carregando...</div>`;
+  try {
+    const data = await apiGet(
+      `/shops/${SHOP_PATH_PLACEHOLDER}/dashboard/top-sellers-month`,
+    );
+    const items = Array.isArray(data?.items) ? data.items : [];
+    if (!items.length) {
+      list.innerHTML = `<div class="muted">Sem dados de top vendidos.</div>`;
+      return;
+    }
+    list.innerHTML = items
+      .slice(0, 5)
+      .map(
+        (x) =>
+          `<div class="dash-top-row"><div class="dash-top-left"><div class="dash-top-check"></div><div style="min-width:0;"><div class="dash-top-name">${escapeHtml(x.title || "—")}</div><div class="dash-top-sub muted">${Number(x.quantity || 0).toLocaleString("pt-BR")} itens</div></div></div><div class="dash-top-gmv">${escapeHtml(formatBRLCents(x.gmvCents || 0))}</div></div>`,
+      )
+      .join("");
+  } catch (e) {
+    list.innerHTML = `<div class="muted">Erro: ${escapeHtml(e.message)}</div>`;
+  }
+}
+
+const DASH_NEO = window.NEO_THEME || {
+  purple: "#A855F7",
+  blue: "#3B82F6",
+  cyan: "#22D3EE",
+  up: "#22C55E",
+  down: "#FF5A6A",
+  tick: "rgba(255,255,255,0.70)",
+  grid: "rgba(255,255,255,0.10)",
+  tooltipBg: "rgba(15,15,20,0.92)",
+  tooltipBorder: "rgba(255,255,255,0.14)",
+};
+
+function makeNeoGradient(ctx, chartArea, stops) {
+  const g = ctx.createLinearGradient(chartArea.left, 0, chartArea.right, 0);
+  for (const [p, c] of stops) g.addColorStop(p, c);
+  return g;
+}
+
+function renderMonthChart({
+  dailyBars,
+  avgPerDayCents,
+  dayOfMonth,
+  daysInMonth,
+}) {
+  const canvas = document.getElementById("dashTrendMonthChart");
+  const ctx = canvas?.getContext?.("2d");
+  if (!ctx || !window.Chart) return;
+
+  const labels = Array.from({ length: daysInMonth }, (_, i) => String(i + 1));
+
+  const daily = Array.from({ length: daysInMonth }, (_, i) => {
+    const bar = dailyBars?.[i];
+    return Number(bar?.gmvCents || 0) / 100;
+  });
+
+  const cum = [];
+  let acc = 0;
+  for (let i = 0; i < daysInMonth; i++) {
+    acc += daily[i] || 0;
+    cum.push(acc);
+  }
+
+  const avgPerDay = Number(avgPerDayCents || 0) / 100;
+  const projection = labels.map((d) => avgPerDay * Number(d));
+
+  const idx = Math.max(
+    0,
+    Math.min(Number(dayOfMonth || 1) - 1, daysInMonth - 1),
+  );
+  const todayPoint = [{ x: labels[idx], y: cum[idx] }];
+
+  if (DASH_CHART_MONTH) DASH_CHART_MONTH.destroy();
+
+  DASH_CHART_MONTH = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels,
+      datasets: [
+        {
+          label: "Acumulado",
+          data: cum,
+          borderColor: (c) => {
+            const { chart } = c;
+            if (!chart.chartArea) return DASH_NEO.purple;
+            return makeNeoGradient(chart.ctx, chart.chartArea, [
+              [0, DASH_NEO.purple],
+              [1, DASH_NEO.cyan],
+            ]);
+          },
+          neoGlowColor: DASH_NEO.purple,
+          borderWidth: 2,
+          tension: 0.25,
+          pointRadius: 0,
+          fill: false,
+        },
+        {
+          label: "Projeção",
+          data: projection,
+          borderColor: DASH_NEO.blue,
+          neoGlowColor: DASH_NEO.blue,
+          borderDash: [6, 6],
+          borderWidth: 2,
+          tension: 0.25,
+          pointRadius: 0,
+          fill: false,
+        },
+        {
+          label: "Hoje",
+          type: "scatter",
+          data: todayPoint,
+          pointRadius: 5,
+          pointHoverRadius: 6,
+          pointBackgroundColor: DASH_NEO.down,
+          pointBorderColor: "rgba(255,255,255,0.85)",
+          pointBorderWidth: 1,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: "index", intersect: false },
+      plugins: {
+        legend: { display: true, labels: { color: DASH_NEO.tick } },
+        tooltip: {
+          displayColors: true,
+          backgroundColor: DASH_NEO.tooltipBg,
+          borderColor: DASH_NEO.tooltipBorder,
+          borderWidth: 1,
+          titleColor: "rgba(255,255,255,0.92)",
+          bodyColor: "rgba(255,255,255,0.90)",
+          callbacks: {
+            title: (items) =>
+              items?.[0]?.label ? `Dia ${items[0].label}` : "",
+            label: (ctx) =>
+              `${ctx.dataset?.label || "—"}: ${fmtBRL(ctx.parsed?.y || 0)}`,
+          },
+        },
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: { display: true, color: DASH_NEO.tick, maxTicksLimit: 10 },
+        },
+        y: {
+          grid: { color: DASH_NEO.grid },
+          ticks: {
+            display: true,
+            color: DASH_NEO.tick,
+            callback: (v) => fmtBRLCompact(v),
+          },
+        },
+      },
+    },
+  });
+}
+
+function clamp01(x) {
+  const n = Number(x);
+  if (!Number.isFinite(n)) return 0;
+  return Math.max(0, Math.min(1, n));
+}
+
+function renderMonthRatioChart({
+  dailyBars,
+  avgPerDayCents,
+  daysInMonth,
+  dayOfMonth,
+}) {
+  const canvas = document.getElementById("dashTrendRatioChart");
+  const ctx = canvas?.getContext?.("2d");
+  if (!ctx || !window.Chart) return;
+
+  const labels = Array.from({ length: daysInMonth }, (_, i) => String(i + 1));
+
+  // soma diária em R$
+  const daily = Array.from({ length: daysInMonth }, (_, i) => {
+    const bar = dailyBars?.[i];
+    return Number(bar?.gmvCents || 0) / 100;
+  });
+
+  // acumulado em R$
+  const cum = [];
+  let acc = 0;
+  for (let i = 0; i < daysInMonth; i++) {
+    acc += daily[i] || 0;
+    cum.push(acc);
+  }
+
+  // projeção acumulada por dia em R$ (avgPerDayCents vem em cents)
+  const avgPerDay = Number(avgPerDayCents || 0) / 100;
+  const proj = labels.map((d) => avgPerDay * Number(d));
+
+  // ratio em % (0..100)
+  const ratioPct = labels.map((_, i) => {
+    const denom = proj[i] || 0;
+    if (denom <= 0) return 0;
+    return clamp01(cum[i] / denom) * 100;
+  });
+
+  // índice do dia atual
+  const idx = Math.max(
+    0,
+    Math.min(Number(dayOfMonth || 1) - 1, daysInMonth - 1),
+  );
+  const todayPoint = [{ x: labels[idx], y: ratioPct[idx] }];
+
+  // linha guia 100%
+  const line100 = labels.map(() => 100);
+
+  if (DASH_CHART_MONTH_RATIO) DASH_CHART_MONTH_RATIO.destroy();
+
+  DASH_CHART_MONTH_RATIO = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels,
+      datasets: [
+        {
+          label: "Progresso",
+          data: ratioPct,
+          borderColor: (c) => {
+            const { chart } = c;
+            if (!chart.chartArea) return DASH_NEO.blue;
+            return makeNeoGradient(chart.ctx, chart.chartArea, [
+              [0, DASH_NEO.blue],
+              [1, DASH_NEO.cyan],
+            ]);
+          },
+          neoGlowColor: DASH_NEO.cyan,
+          borderWidth: 2,
+          tension: 0.25,
+          pointRadius: 0,
+          fill: false,
+        },
+        {
+          label: "Meta",
+          data: line100,
+          borderColor: "rgba(255,255,255,0.18)",
+          borderDash: [6, 6],
+          pointRadius: 0,
+          borderWidth: 1,
+          fill: false,
+        },
+        {
+          label: "Hoje",
+          type: "scatter",
+          data: todayPoint,
+          pointRadius: 5,
+          pointHoverRadius: 6,
+          pointBackgroundColor: DASH_NEO.down,
+          pointBorderColor: "rgba(255,255,255,0.85)",
+          pointBorderWidth: 1,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: "index", intersect: false },
+      plugins: {
+        legend: { display: true, labels: { color: DASH_NEO.tick } },
+        tooltip: {
+          displayColors: true,
+          backgroundColor: DASH_NEO.tooltipBg,
+          borderColor: DASH_NEO.tooltipBorder,
+          borderWidth: 1,
+          titleColor: "rgba(255,255,255,0.92)",
+          bodyColor: "rgba(255,255,255,0.90)",
+          callbacks: {
+            title: (items) =>
+              items?.[0]?.label ? `Dia ${items[0].label}` : "",
+            label: (ctx) =>
+              `${ctx.dataset?.label || "—"}: ${Number(ctx.parsed?.y || 0).toFixed(1)}%`,
+          },
+        },
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: { display: true, color: DASH_NEO.tick, maxTicksLimit: 10 },
+        },
+        y: {
+          min: 0,
+          max: 100,
+          grid: { color: DASH_NEO.grid },
+          ticks: {
+            display: true,
+            color: DASH_NEO.tick,
+            callback: (v) => `${v}%`,
+          },
+        },
+      },
+    },
+  });
+}
+
+function renderTodayChartCompare({
+  hourlyBarsToday = [],
+  hourlyBarsYesterday = [],
+  currentHour,
+}) {
+  const canvas = document.getElementById("dashTodayChart");
+  const ctx = canvas?.getContext?.("2d");
+  if (!ctx || !window.Chart) return;
+
+  const labels = Array.from({ length: 24 }, (_, i) =>
+    String(i).padStart(2, "0"),
+  );
+
+  const today = labels.map(
+    (_, i) => Number(hourlyBarsToday?.[i]?.gmvCents || 0) / 100,
+  );
+  const yesterday = labels.map(
+    (_, i) => Number(hourlyBarsYesterday?.[i]?.gmvCents || 0) / 100,
+  );
+
+  const h = Math.max(
+    0,
+    Math.min(Number(currentHour ?? new Date().getHours()), 23),
+  );
+  const pointY = today[h] || 0;
+
+  if (DASH_CHART_TODAY) DASH_CHART_TODAY.destroy();
+
+  DASH_CHART_TODAY = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels,
+      datasets: [
+        {
+          label: "Hoje",
+          data: today,
+          backgroundColor: "rgba(168,85,247,0.28)",
+          borderColor: "rgba(168,85,247,0.65)",
+          borderWidth: 1,
+          order: 2,
+        },
+        {
+          label: "Ontem",
+          type: "line",
+          data: yesterday,
+          borderColor: (c) => {
+            const { chart } = c;
+            if (!chart.chartArea) return DASH_NEO.cyan;
+            return makeNeoGradient(chart.ctx, chart.chartArea, [
+              [0, DASH_NEO.cyan],
+              [1, DASH_NEO.blue],
+            ]);
+          },
+          neoGlowColor: DASH_NEO.cyan,
+          backgroundColor: "rgba(34,211,238,0.08)",
+          pointRadius: 0,
+          tension: 0.25,
+          borderWidth: 2,
+          order: 1,
+        },
+        {
+          label: "Agora",
+          type: "scatter",
+          data: [{ x: labels[h], y: pointY }],
+          pointRadius: 5,
+          pointHoverRadius: 6,
+          pointBackgroundColor: DASH_NEO.down,
+          pointBorderColor: "rgba(255,255,255,0.85)",
+          pointBorderWidth: 1,
+          order: 0,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: "index", intersect: false },
+      plugins: {
+        legend: { display: true, labels: { color: DASH_NEO.tick } },
+        tooltip: {
+          displayColors: true,
+          backgroundColor: DASH_NEO.tooltipBg,
+          borderColor: DASH_NEO.tooltipBorder,
+          borderWidth: 1,
+          titleColor: "rgba(255,255,255,0.92)",
+          bodyColor: "rgba(255,255,255,0.90)",
+          callbacks: {
+            title: (items) => (items?.[0]?.label ? `${items[0].label}:00` : ""),
+            label: (ctx) =>
+              `${ctx.dataset?.label || "—"}: ${fmtBRL(ctx.parsed?.y || 0)}`,
+          },
+          filter: (ctx) => {
+            const lbl = String(ctx.dataset?.label || "");
+            return lbl === "Hoje" || lbl === "Ontem";
+          },
+        },
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: { display: true, color: DASH_NEO.tick, maxTicksLimit: 12 },
+        },
+        y: {
+          grid: { color: DASH_NEO.grid },
+          ticks: {
+            display: true,
+            color: DASH_NEO.tick,
+            callback: (v) => fmtBRLCompact(v),
+          },
+        },
+      },
+    },
+  });
+}
+
+function setWidthPct(id, pct) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const x = Number(pct);
+  const safe = Number.isFinite(x) ? Math.max(0, Math.min(100, x)) : 0;
+  el.style.width = `${safe}%`;
+}
+
+async function loadDashboard(opts = {}) {
+  await ensureShopSelected();
+
+  const msg = document.getElementById("dashMsg");
+  if (msg && !opts.silent) msg.textContent = "Carregando...";
+
+  const updatedAtEl = document.getElementById("dashLiveUpdatedAt");
+  if (updatedAtEl) updatedAtEl.textContent = fmtTimeNow();
+
+  // título do header (alvo)
+  setText(
+    "dashLiveTitle",
+    DASH_MODE === "today" ? "Vendas ao vivo (Hoje)" : "Vendas (Mês)",
+  );
+  setText(
+    "dashLiveSubtitle",
+    DASH_MODE === "today"
+      ? "Comparado com ontem até a hora atual"
+      : "Projeção e tendência do mês",
+  );
+
+  try {
+    if (DASH_MODE === "today") {
+      const data = await apiGet(
+        `/shops/${SHOP_PATH_PLACEHOLDER}/dashboard/today-sales`,
+      );
+      const todayIso = isoLocalDate();
+
+      try {
+        const ads = await loadAdsRoasApprox({
+          dateFrom: todayIso,
+          dateTo: todayIso,
+        });
+        setDashAdsRoasUI(ads, { label: `Período Ads: ${todayIso} (hoje)` });
+      } catch (e) {
+        setDashAdsRoasUI(null, {
+          label: `Ads indisponível: ${String(e?.message || e)}`,
+        });
+      }
+      // KPIs HOJE (IDs do seu HTML)
+      setText(
+        "dashTodayGmv",
+        formatBRLCents(data?.metrics?.gmvTodayCents || 0),
+      );
+
+      const pct = data?.metrics?.deltaPct;
+      setText(
+        "dashTodayDelta",
+        pct == null ? "—" : `${pct > 0 ? "+" : ""}${pct}%`,
+      );
+
+      // (opcional) cor verde/vermelho se você tiver .dash-pos/.dash-neg no CSS
+      const deltaEl = document.getElementById("dashTodayDelta");
+      if (deltaEl) {
+        deltaEl.classList.remove("dash-pos", "dash-neg");
+        if (pct != null)
+          deltaEl.classList.add(pct >= 0 ? "dash-pos" : "dash-neg");
+      }
+
+      setText("dashTodayOrders", String(data?.metrics?.ordersCountToday || 0));
+      setText(
+        "dashTodayTicket",
+        formatBRLCents(data?.metrics?.ticketAvgTodayCents || 0),
+      );
+
+      // chart HOJE (canvas #dashTodayChart)
+      renderTodayChartCompare({
+        hourlyBarsToday: data?.hourlyBarsToday || [],
+        hourlyBarsYesterday: data?.hourlyBarsYesterday || [],
+        currentHour: new Date().getHours(),
+      });
+
+      if (msg) msg.textContent = "";
+      try {
+        const today = isoLocalDate();
+        const ads = await loadAdsRoasApprox({ dateFrom: today, dateTo: today });
+        setDashAdsRoasUI(ads, { label: `Período Ads: ${today} (hoje)` });
+      } catch (e) {
+        setDashAdsRoasUI(null, {
+          label: `Ads indisponível: ${String(e?.message || e)}`,
+        });
+      }
+      return;
+    }
+
+    // ===== MÊS =====
+    const data = await apiGet(
+      `/shops/${SHOP_PATH_PLACEHOLDER}/dashboard/monthly-sales`,
+    );
+    try {
+      const now = new Date();
+      const y = now.getFullYear();
+      const m = String(now.getMonth() + 1).padStart(2, "0");
+      const from = `${y}-${m}-01`;
+      const to = isoLocalDate(now);
+
+      const ads = await loadAdsRoasApprox({ dateFrom: from, dateTo: to });
+      setDashAdsRoasUI(ads, { label: `Período Ads: ${from} → ${to}` });
+    } catch (e) {
+      setDashAdsRoasUI(null, {
+        label: `Ads indisponível: ${String(e?.message || e)}`,
+      });
+    }
+    const gmvMtdCents = Number(data?.metrics?.gmvMtdCents || 0);
+    const projectionCents = Number(data?.metrics?.projectionCents || 0);
+    const avgPerDayCents = Number(data?.metrics?.avgPerDayCents || 0);
+    const ordersCountMtd = Number(data?.metrics?.ordersCountMtd || 0);
+    const ticketAvgCents = Number(data?.metrics?.ticketAvgCents || 0);
+
+    const dayOfMonth = Number(data?.period?.dayOfMonth || 1);
+    const daysInMonth = Number(data?.period?.daysInMonth || 30);
+    const progressPct = data?.period?.progressPct;
+
+    // KPIs MÊS (IDs do seu HTML)
+    setText("dashKpiGmvValue", formatBRLCents(gmvMtdCents));
+    setText("dashKpiProjectionValue", formatBRLCents(projectionCents));
+    setText("dashKpiOrdersValue", String(ordersCountMtd));
+    setText("dashKpiTicketValue", formatBRLCents(ticketAvgCents));
+    const cmp = data?.compare?.delta || null;
+
+    // GMV delta
+    if (cmp) {
+      setTrendArrow("dashKpiGmvTrendArrow", cmp.gmvDeltaPct);
+      const gmvPctTxt =
+        cmp.gmvDeltaPct == null
+          ? "—"
+          : `${cmp.gmvDeltaPct > 0 ? "+" : ""}${cmp.gmvDeltaPct}%`;
+      const gmvValTxt = `${cmp.gmvDeltaCents >= 0 ? "+" : ""}${formatBRLCents(cmp.gmvDeltaCents || 0)}`;
+      setText("dashKpiGmvDelta", `${gmvPctTxt} • ${gmvValTxt}`);
+    } else {
+      setText("dashKpiGmvDelta", "—");
+    }
+
+    // Orders delta
+    if (cmp) {
+      setTrendArrow("dashKpiOrdersTrendArrow", cmp.ordersDeltaPct);
+      const ordPctTxt =
+        cmp.ordersDeltaPct == null
+          ? "—"
+          : `${cmp.ordersDeltaPct > 0 ? "+" : ""}${cmp.ordersDeltaPct}%`;
+      const ordValTxt = fmtSigned(cmp.ordersDeltaCount || 0);
+      setText("dashKpiOrdersToday", `${ordPctTxt} • ${ordValTxt}`);
+    } else {
+      setText("dashKpiOrdersToday", "—");
+    }
+
+    // Ticket delta
+    if (cmp) {
+      setTrendArrow("dashKpiTicketTrendArrow", cmp.ticketDeltaPct);
+      const tPctTxt =
+        cmp.ticketDeltaPct == null
+          ? "—"
+          : `${cmp.ticketDeltaPct > 0 ? "+" : ""}${cmp.ticketDeltaPct}%`;
+      const tValTxt = `${cmp.ticketDeltaCents >= 0 ? "+" : ""}${formatBRLCents(cmp.ticketDeltaCents || 0)}`;
+      setText("dashKpiTicketDelta", `${tPctTxt} • ${tValTxt}`);
+    } else {
+      setText("dashKpiTicketDelta", "—");
+    }
+    // barra da projeção: quanto do projetado já foi atingido
+    const projRatio =
+      projectionCents > 0 ? (gmvMtdCents / projectionCents) * 100 : 0;
+    setWidthPct("dashKpiProjectionBar", projRatio);
+    setText(
+      "dashKpiProjectionMeta",
+      projectionCents > 0
+        ? `${Math.round(Math.max(0, Math.min(999, projRatio)))}%`
+        : "—",
+    );
+
+    // card header direito
+    const gmvDeltaPct = data?.compare?.delta?.gmvDeltaPct ?? null;
+
+    setText(
+      "dashTrendDelta",
+      gmvDeltaPct == null
+        ? "—"
+        : `${gmvDeltaPct > 0 ? "+" : ""}${gmvDeltaPct}% vs M-1`,
+    );
+
+    // resumo do mês
+    setText("dashMonthProgress", progressPct != null ? `${progressPct}%` : "—");
+    setText(
+      "dashMonthPeriod",
+      data?.period?.label || `${dayOfMonth}/${daysInMonth}`,
+    );
+    setText("dashMonthDays", `${dayOfMonth} / ${daysInMonth}`);
+    setText(
+      "dashMonthFormula",
+      "( total_vendas_mês_atual / dia_atual ) x dias_do_mês",
+    );
+
+    // charts MÊS
+    renderMonthChart({
+      dailyBars: data?.dailyBars || [],
+      avgPerDayCents: avgPerDayCents,
+      dayOfMonth,
+      daysInMonth,
+    });
+
+    renderMonthRatioChart({
+      dailyBars: data?.dailyBars || [],
+      avgPerDayCents: avgPerDayCents,
+      daysInMonth,
+      dayOfMonth,
+    });
+
+    // top sellers (GMV)
+    await loadTopSellersMonth();
+
+    if (msg) msg.textContent = "";
+  } catch (e) {
+    const text = String(e?.message || e);
+    if (msg) msg.textContent = `Erro: ${text}`;
+  }
+}
+
+function tzOffsetToMinutes(tzOffset) {
+  const s = String(tzOffset || "-03:00").trim();
+  const m = s.match(/^([+-])(\d{2}):(\d{2})$/);
+  if (!m) return -180;
+  const sign = m[1] === "-" ? -1 : 1;
+  return sign * (Number(m[2]) * 60 + Number(m[3]));
+}
+
+// dateUtc é Date (com Z) ou string ISO com Z
+function hourIndexInOffset(dateUtc, tzOffset) {
+  const offsetMin = tzOffsetToMinutes(tzOffset);
+  const d = dateUtc instanceof Date ? dateUtc : new Date(dateUtc);
+  const shiftedMs = d.getTime() + offsetMin * 60 * 1000;
+  return new Date(shiftedMs).getUTCHours(); // 0..23 (hora “local” do offset)
+}
+
+function setTrendArrow(arrowId, deltaPct) {
+  const el = document.getElementById(arrowId);
+  if (!el) return;
+
+  el.classList.remove("dash-trend-up", "dash-trend-down");
+
+  if (deltaPct == null || !Number.isFinite(Number(deltaPct))) {
+    el.textContent = "↑";
+    el.classList.add("dash-trend-up");
+    return;
+  }
+
+  const x = Number(deltaPct);
+  if (x >= 0) {
+    el.textContent = "↑";
+    el.classList.add("dash-trend-up");
+  } else {
+    el.textContent = "↓";
+    el.classList.add("dash-trend-down");
+  }
+}
+
+function fmtSigned(n) {
+  const x = Number(n);
+  if (!Number.isFinite(x)) return "0";
+  const abs = Math.abs(x).toLocaleString("pt-BR");
+  return (x >= 0 ? "+" : "-") + abs;
+}
+
+async function promptSelectShop(shops) {
+  const optionsHtml = shops
+    .map((s) => {
+      const title = s.shopId
+        ? `ShopId Shopee: ${escapeHtml(String(s.shopId))}`
+        : "Loja";
+      const region = s.region ? ` • ${escapeHtml(String(s.region))}` : "";
+      const status = s.status ? ` • ${escapeHtml(String(s.status))}` : "";
+      return `
+        <button class="btn btn-primary" data-select-shop="${escapeHtml(
+          String(s.id),
+        )}" style="width:100%; margin-top:10px;">
+          ${title}${region}${status}
+        </button>
+      `;
+    })
+    .join("");
+
+  openModal(
+    "Selecione a loja",
+    `<div class="muted">Esta conta possui mais de uma loja vinculada. Escolha qual deseja acessar agora.</div>
+     <div style="margin-top:12px;">${optionsHtml}</div>`,
+  );
+
+  $all("[data-select-shop]").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const shopId = Number(btn.getAttribute("data-select-shop"));
+      try {
+        await apiPost("/auth/select-shop", { shopId });
+        closeModal();
+      } catch (e) {
+        $("#modal-body").innerHTML =
+          `<div class="muted">Erro ao selecionar loja: ${escapeHtml(
+            e.message,
+          )}</div>` + `<div style="margin-top:12px;">${optionsHtml}</div>`;
+      }
+    });
+  });
+}
+
+/* “Trocar conta/loja” no topo (por enquanto clicando no status) */
+function initSwitchShopShortcut() {
+  const el = $("#auth-status");
+  if (!el) return;
+
+  el.style.cursor = "pointer";
+  el.title = "Clique para trocar a loja";
+
+  el.addEventListener("click", async () => {
+    try {
+      await loadMe();
+      const shops = Array.isArray(ME?.shops) ? ME.shops : [];
+      if (shops.length <= 1) return;
+      await promptSelectShop(shops);
+    } catch (_) {}
+  });
+}
+
+let ORDERS_PAGER_BOUND = false;
+
+function initOrdersPager() {
+  if (ORDERS_PAGER_BOUND) return;
+  ORDERS_PAGER_BOUND = true;
+
+  const sel = $("#orders-page-size");
+  const first = $("#orders-first");
+  const prev = $("#orders-prev");
+  const next = $("#orders-next");
+  const last = $("#orders-last");
+
+  if (sel) {
+    sel.value = String(ORDERS_PAGE_SIZE);
+    sel.addEventListener("change", async () => {
+      ORDERS_PAGE_SIZE = Number(sel.value || 60);
+      ORDERS_PAGE = 1;
+      await loadOrders();
+    });
+  }
+
+  if (first)
+    first.addEventListener("click", async () => {
+      ORDERS_PAGE = 1;
+      await loadOrders();
+    });
+  if (prev)
+    prev.addEventListener("click", async () => {
+      ORDERS_PAGE = Math.max(1, ORDERS_PAGE - 1);
+      await loadOrders();
+    });
+  if (next)
+    next.addEventListener("click", async () => {
+      ORDERS_PAGE = Math.min(ORDERS_TOTAL_PAGES, ORDERS_PAGE + 1);
+      await loadOrders();
+    });
+  if (last)
+    last.addEventListener("click", async () => {
+      ORDERS_PAGE = ORDERS_TOTAL_PAGES;
+      await loadOrders();
+    });
+}
+
+/* ---------------- Orders (DB) ---------------- */
+
+let ORDERS_GRID_BOUND = false;
+
+function bindOrdersGridClicks() {
+  if (ORDERS_GRID_BOUND) return;
+  ORDERS_GRID_BOUND = true;
+
+  const grid = $("#orders-grid");
+  if (!grid) return;
+
+  grid.addEventListener("click", async (e) => {
+    // Se clicou no botão do alerta → abre comparação
+    const alertBtn = e.target.closest("[data-order-alert]");
+    if (alertBtn) {
+      e.stopPropagation();
+      const orderSn = alertBtn.getAttribute("data-order-alert");
+      if (orderSn) await openOrderAddressChangeModal(orderSn);
+      return;
+    }
+
+    // Caso contrário → abre detalhe do pedido
+    const card = e.target.closest("[data-order-sn]");
+    if (card) {
+      const orderSn = card.getAttribute("data-order-sn");
+      if (orderSn) await openOrderDetail(orderSn);
+    }
+  });
+}
+
+let ORDERS_OPEN_ADDRESS_ALERTS = []; // cache pro modal-lista
+
+function fmtAddr(snap) {
+  if (!snap) return "—";
+  const parts = [
+    snap.fullAddress || "",
+    [snap.city, snap.state].filter(Boolean).join(" / "),
+    snap.zipcode ? `CEP: ${snap.zipcode}` : "",
+  ].filter(Boolean);
+  return escapeHtml(parts.join(" • "));
+}
+
+async function refreshOrdersAddressAlertsBadge() {
+  const badge = $("#orders-address-alerts-badge");
+  if (!badge) return;
+
+  try {
+    const data = await apiGet(
+      `/shops/${SHOP_PATH_PLACEHOLDER}/orders/address-alerts?limit=500`,
+    );
+
+    const items = Array.isArray(data?.items) ? data.items : [];
+    ORDERS_OPEN_ADDRESS_ALERTS = items;
+
+    if (items.length > 0) {
+      badge.style.display = "inline-flex";
+      badge.textContent = String(items.length);
+    } else {
+      badge.style.display = "none";
+      badge.textContent = "0";
+    }
+  } catch (_) {
+    // se falhar, não quebra a tela
+    badge.style.display = "none";
+    badge.textContent = "0";
+  }
+}
+
+function showOrdersAlertsPopover() {
+  const pop = $("#orders-address-alerts-popover");
+  if (pop) pop.style.display = "block";
+}
+
+function hideOrdersAlertsPopover() {
+  const pop = $("#orders-address-alerts-popover");
+  if (pop) pop.style.display = "none";
+}
+
+function isOrdersAlertsPopoverOpen() {
+  const pop = $("#orders-address-alerts-popover");
+  return pop && pop.style.display !== "none";
+}
+
+function renderOrdersAlertsPopover() {
+  const list = $("#orders-address-alerts-list");
+  if (!list) return;
+
+  if (!ORDERS_OPEN_ADDRESS_ALERTS.length) {
+    list.innerHTML = `<div class="orders-alerts-empty">Nenhum alerta de endereço em aberto.</div>`;
+    return;
+  }
+
+  list.innerHTML = ORDERS_OPEN_ADDRESS_ALERTS.map((a) => {
+    const orderSn = escapeHtml(a.orderSn || "—");
+    const detected = a.detectedAt
+      ? escapeHtml(new Date(a.detectedAt).toLocaleString("pt-BR"))
+      : "—";
+    const status = escapeHtml(a.orderStatus || "—");
+
+    return `
+        <div class="orders-alerts-item" data-open-order-alert="${orderSn}">
+          <div style="font-weight:800;">Pedido ${orderSn}</div>
+          <div class="muted">Detectado: ${detected}</div>
+          <div class="muted">Status: ${status}</div>
+        </div>
+      `;
+  }).join("");
+
+  $all("[data-open-order-alert]").forEach((el) => {
+    el.addEventListener("click", async () => {
+      const orderSn = el.getAttribute("data-open-order-alert");
+      hideOrdersAlertsPopover();
+      await openOrderAddressChangeModal(orderSn);
+    });
+  });
+}
+
+function initOrdersAlertsPopover() {
+  const btn = $("#btn-orders-address-alerts");
+  const closeBtn = $("#orders-address-alerts-close");
+  const wrap = $(".orders-alerts-wrap");
+
+  if (btn) {
+    btn.addEventListener("click", async (e) => {
+      e.stopPropagation();
+
+      if (isOrdersAlertsPopoverOpen()) {
+        hideOrdersAlertsPopover();
+        return;
+      }
+
+      showOrdersAlertsPopover();
+
+      const list = $("#orders-address-alerts-list");
+      if (list)
+        list.innerHTML = `<div class="orders-alerts-empty">Carregando...</div>`;
+
+      await refreshOrdersAddressAlertsBadge();
+      renderOrdersAlertsPopover();
+    });
+  }
+
+  if (closeBtn) closeBtn.addEventListener("click", hideOrdersAlertsPopover);
+
+  document.addEventListener("click", (e) => {
+    if (!isOrdersAlertsPopoverOpen()) return;
+    if (wrap && wrap.contains(e.target)) return;
+    hideOrdersAlertsPopover();
+  });
+}
+
+async function openOrderAddressChangeModal(orderSn) {
+  openModal(
+    `Endereço alterado • Pedido ${escapeHtml(orderSn)}`,
+    `<div class="muted">Carregando comparação...</div>`,
+  );
+
+  try {
+    await ensureShopSelected();
+
+    const data = await apiGet(
+      `/shops/${SHOP_PATH_PLACEHOLDER}/orders/${encodeURIComponent(
+        orderSn,
+      )}/address-alerts`,
+    );
+
+    const items = Array.isArray(data?.items) ? data.items : [];
+    if (!items.length) {
+      $("#modal-body").innerHTML =
+        `<div class="muted">Não há alertas abertos para este pedido.</div>`;
+      return;
+    }
+
+    const a = items[0]; // mais recente
+    const detected = a.detectedAt
+      ? escapeHtml(new Date(a.detectedAt).toLocaleString("pt-BR"))
+      : "—";
+
+    const oldSnap = a.oldSnapshot || null;
+    const newSnap = a.newSnapshot || null;
+
+    const html = `
+      <div class="muted">Detectado: ${detected}</div>
+
+      <div style="margin-top:12px; display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+        <div class="card">
+          <div class="card-title">Endereço anterior</div>
+          <div class="muted" style="margin-top:8px;">${fmtAddr(oldSnap)}</div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Endereço novo</div>
+          <div class="muted" style="margin-top:8px;">${fmtAddr(newSnap)}</div>
+        </div>
+      </div>
+
+      ${
+        items.length > 1
+          ? `<div class="muted" style="margin-top:12px;">Há mais ${
+              items.length - 1
+            } alteração(ões) em aberto para este pedido.</div>`
+          : ""
+      }
+    `;
+
+    $("#modal-body").innerHTML = html;
+  } catch (e) {
+    $("#modal-body").innerHTML = `<div class="muted">Erro: ${escapeHtml(
+      e.message,
+    )}</div>`;
+  }
+}
+
+async function loadOrders() {
+  initOrdersPager();
+  const grid = $("#orders-grid");
+  bindOrdersGridClicks();
+  grid.innerHTML = `<div class="card"><div class="muted">Carregando pedidos...</div></div>`;
+
+  try {
+    await ensureShopSelected();
+
+    const qs =
+      `page=${encodeURIComponent(String(ORDERS_PAGE))}` +
+      `&pageSize=${encodeURIComponent(String(ORDERS_PAGE_SIZE))}`;
+
+    const data = await apiGet(`/shops/${SHOP_PATH_PLACEHOLDER}/orders?${qs}`);
+
+    const items = data.items || data.orders || [];
+    if (!items.length) {
+      grid.innerHTML = `<div class="card"><div class="muted">Nenhum pedido encontrado no banco. Clique em "Sincronizar Pedidos".</div></div>`;
+      return;
+    }
+
+    grid.innerHTML = items
+      .map((o) => {
+        const orderSn = escapeHtml(o.orderSn || o.order_sn);
+        const status = escapeHtml(o.orderStatus || o.order_status || "—");
+        const shipBy = o.shipByDate
+          ? new Date(o.shipByDate).toLocaleString("pt-BR")
+          : "—";
+        const updated = o.shopeeUpdateTime
+          ? new Date(o.shopeeUpdateTime).toLocaleString("pt-BR")
+          : "—";
+
+        const hasAlert = Boolean(o.hasAddressAlert);
+        const alertCount = Number(o.addressAlertCount || 0);
+
+        return `
+          <div class="card clickable order-card" data-order-sn="${orderSn}">
+            ${
+              hasAlert
+                ? `<button class="order-addr-alert-btn" type="button" data-order-alert="${orderSn}" title="Endereço alterado">
+                     !
+                     ${
+                       alertCount > 1
+                         ? `<span class="order-addr-alert-badge">${escapeHtml(
+                             String(alertCount),
+                           )}</span>`
+                         : ""
+                     }
+                   </button>`
+                : ""
+            }
+
+            <div class="card-title">Pedido ${orderSn}</div>
+            <div class="muted">Status: ${status}</div>
+            <div class="muted">Ship by: ${escapeHtml(shipBy)}</div>
+            <div class="muted">Atualizado: ${escapeHtml(updated)}</div>
+          </div>
+        `;
+      })
+      .join("");
+
+    await refreshOrdersAddressAlertsBadge();
+  } catch (e) {
+    grid.innerHTML = `<div class="card"><div class="muted">Erro ao carregar pedidos: ${escapeHtml(
+      e.message,
+    )}</div></div>`;
+  }
+}
+
+async function openOrderDetail(orderSn) {
+  openModal(
+    `Pedido ${escapeHtml(orderSn)}`,
+    `<div class="muted">Carregando detalhes...</div>`,
+  );
+
+  try {
+    await ensureShopSelected();
+
+    const data = await apiGet(
+      `/shops/${SHOP_PATH_PLACEHOLDER}/orders/${encodeURIComponent(orderSn)}`,
+    );
+
+    const order = data.order || data;
+    const snap = data.lastAddressSnapshot || null;
+
+    let html = "";
+    html += `<div style="margin-bottom:10px;">
+      <span class="badge">Status: ${escapeHtml(order.orderStatus || "—")}</span>
+      <span class="badge gray" style="margin-left:8px;">Order SN: ${escapeHtml(
+        order.orderSn,
+      )}</span>
+    </div>`;
+
+    html += kv(
+      "Ship By",
+      order.shipByDate
+        ? escapeHtml(new Date(order.shipByDate).toLocaleString("pt-BR"))
+        : "—",
+    );
+    html += kv(
+      "Create Time",
+      order.shopeeCreateTime
+        ? escapeHtml(new Date(order.shopeeCreateTime).toLocaleString("pt-BR"))
+        : "—",
+    );
+    html += kv(
+      "Update Time",
+      order.shopeeUpdateTime
+        ? escapeHtml(new Date(order.shopeeUpdateTime).toLocaleString("pt-BR"))
+        : "—",
+    );
+    html += kv("Region", escapeHtml(order.region || "—"));
+    html += kv("Currency", escapeHtml(order.currency || "—"));
+
+    if (snap) {
+      html += `<div style="margin-top:14px; font-weight:800;">Último Endereço (snapshot)</div>`;
+      html += kv("Nome", escapeHtml(snap.name || "—"));
+      html += kv("Telefone", escapeHtml(snap.phone || "—"));
+      html += kv("Cidade", escapeHtml(snap.city || "—"));
+      html += kv("Estado", escapeHtml(snap.state || "—"));
+      html += kv("CEP", escapeHtml(snap.zipcode || "—"));
+      html += kv("Endereço", escapeHtml(snap.fullAddress || "—"));
+      html += kv(
+        "Criado em",
+        snap.createdAt
+          ? escapeHtml(new Date(snap.createdAt).toLocaleString("pt-BR"))
+          : "—",
+      );
+    } else {
+      html += `<div class="muted" style="margin-top:14px;">Sem snapshot de endereço salvo ainda.</div>`;
+    }
+
+    $("#modal-body").innerHTML = html;
+  } catch (e) {
+    $("#modal-body").innerHTML =
+      `<div class="muted">Erro ao carregar detalhes: ${escapeHtml(
+        e.message,
+      )}</div>`;
+  }
+}
+
+/* ---------------- Geo Sales (Mapa) ---------------- */
+
+let GEO_READY = false;
+let GEO_VIEW = "BR"; // "BR" | "UF"
+let GEO_UF = null;
+let GEO_LEGEND_CTRL = null;
+let GEO_MONTHS = 6;
+let GEO_MODE = "total"; // "total" | "feitos" | "pagos"
+let GEO_MAP = null;
+let GEO_BASE = null;
+let GEO_STATES_LAYER = null;
+let GEO_HEAT = null;
+
+let GEO_BR_GEOJSON = null; // cache do geojson Brasil
+let GEO_STATE_POINTS_CACHE = new Map(); // uf -> points[]
+
+function normTextGeo(v) {
+  return String(v || "")
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function getUfFromFeature(feature) {
+  const p = feature?.properties || {};
+  const cand =
+    p.sigla ||
+    p.SIGLA ||
+    p.uf ||
+    p.UF ||
+    p.abbrev ||
+    p.ABBREV ||
+    p.SIGLA_UF ||
+    feature?.id ||
+    null;
+
+  if (!cand) return null;
+
+  const s = String(cand).toUpperCase().trim();
+  if (/^[A-Z]{2}$/.test(s)) return s;
+
+  const m = s.match(/([A-Z]{2})$/);
+  return m ? m[1] : null;
+}
+
+function clamp(n, a, b) {
+  const x = Number(n);
+  if (!Number.isFinite(x)) return a;
+  return Math.max(a, Math.min(b, x));
+}
+
+function colorForRatio(r) {
+  // r: 0..1
+  const x = clamp(r, 0, 1);
+
+  // escala “quente” (laranja -> rosa)
+  // retorna rgba para ficar elegante no tema escuro
+  const a = 0.12 + 0.55 * x;
+  if (x < 0.5) {
+    // laranja
+    return `rgba(255, 106, 0, ${a.toFixed(3)})`;
+  }
+  // rosa
+  return `rgba(255, 46, 147, ${a.toFixed(3)})`;
+}
+
+function borderForRatio(r) {
+  const x = clamp(r, 0, 1);
+  const a = 0.1 + 0.55 * x;
+  return `rgba(255,255,255,${a.toFixed(3)})`;
+}
+
+function fmtInt(n) {
+  const x = Number(n || 0);
+  return Number.isFinite(x) ? x.toLocaleString("pt-BR") : "0";
+}
+
+async function loadGeoStatic() {
+  if (GEO_STATIC) return GEO_STATIC;
+  GEO_STATIC = await apiGet("/json/Geo.json");
+  return GEO_STATIC;
+}
+
+async function loadBrStatesGeoJson() {
+  const data = await loadGeoStatic();
+  return data?.brStatesGeoJson || null;
+}
+
+async function loadUfPoints(uf) {
+  const data = await loadGeoStatic();
+  const key = String(uf || "").toUpperCase();
+  const arr = data?.cityPointsByUf?.[key];
+  return Array.isArray(arr) ? arr : [];
+}
+
+function ensureGeoDomBound() {
+  if (GEO_READY) return;
+  GEO_READY = true;
+
+  const sel = $("#geoSalesMonths");
+  const btnReload = $("#geoSalesReload");
+  const btnBack = $("#geoSalesBack");
+  const selMode = $("#geoSalesMode");
+  if (selMode) {
+    GEO_MODE = String(selMode.value || "total");
+    selMode.addEventListener("change", async () => {
+      GEO_MODE = String(selMode.value || "total");
+      await loadGeoSales();
+    });
+  }
+  if (sel) {
+    GEO_MONTHS = Number(sel.value || 6);
+    setText("geoSalesMonthsLabel", String(GEO_MONTHS));
+
+    sel.addEventListener("change", async () => {
+      GEO_MONTHS = Number(sel.value || 6);
+      setText("geoSalesMonthsLabel", String(GEO_MONTHS));
+      await loadGeoSales(); // recarrega mantendo a view atual
+    });
+  }
+
+  if (btnReload) {
+    btnReload.addEventListener("click", async () => {
+      await loadGeoSales();
+    });
+  }
+
+  if (btnBack) {
+    btnBack.addEventListener("click", async () => {
+      GEO_VIEW = "BR";
+      GEO_UF = null;
+      await renderGeoBrazil();
+    });
+  }
+}
+
+function ensureGeoMap() {
+  if (GEO_MAP) return;
+
+  const el = $("#geoSalesMap");
+  if (!el) return;
+
+  GEO_MAP = L.map(el, {
+    zoomControl: true,
+    scrollWheelZoom: true,
+  }).setView([-14.2, -51.9], 4);
+
+  GEO_BASE = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom: 18,
+    attribution: "&copy; OpenStreetMap",
+  }).addTo(GEO_MAP);
+}
+
+function setGeoHeader({ title, subtitle, indexSubtitle, showBack }) {
+  setText("geoSalesTitle", title);
+  setText("geoSalesSubtitle", subtitle);
+  setText("geoSalesIndexSubtitle", indexSubtitle);
+
+  const back = $("#geoSalesBack");
+  if (back) back.style.display = showBack ? "" : "none";
+}
+
+function renderGeoIndex(items, { mode, activeKey }) {
+  const root = $("#geoSalesIndex");
+  if (!root) return;
+
+  if (!Array.isArray(items) || items.length === 0) {
+    root.innerHTML = `<div class="muted">Sem dados para o período selecionado.</div>`;
+    return;
+  }
+
+  const max = Math.max(...items.map((x) => Number(x.count || 0)));
+  const html =
+    `<div class="geo-index">` +
+    items
+      .map((x) => {
+        const name = mode === "BR" ? String(x.uf) : String(x.city || "—");
+        const key =
+          mode === "BR"
+            ? String(x.uf)
+            : String(x.cityNorm || normTextGeo(x.city));
+        const pct = max > 0 ? (Number(x.count || 0) / max) * 100 : 0;
+        const active = activeKey && String(activeKey) === String(key);
+
+        return `
+          <div class="geo-index-item ${
+            active ? "is-active" : ""
+          }" data-geo-item="${escapeHtml(key)}" data-geo-mode="${escapeHtml(
+            mode,
+          )}">
+            <div class="geo-index-top">
+              <div class="geo-index-name">${escapeHtml(name)}</div>
+              <div class="geo-index-count">${escapeHtml(
+                fmtInt(x.count || 0),
+              )}</div>
+            </div>
+            <div class="geo-index-bar"><div style="width:${pct.toFixed(
+              2,
+            )}%"></div></div>
+          </div>
+        `;
+      })
+      .join("") +
+    `</div>`;
+
+  root.innerHTML = html;
+
+  $all("[data-geo-item]").forEach((el) => {
+    el.addEventListener("click", async () => {
+      const mode = el.getAttribute("data-geo-mode");
+      const key = el.getAttribute("data-geo-item");
+
+      if (mode === "BR") {
+        const uf = String(key || "").toUpperCase();
+        GEO_VIEW = "UF";
+        GEO_UF = uf;
+        await renderGeoState(uf);
+      } else {
+        // Em UF: clicar no item dá zoom em um ponto (se existir)
+        const cityNorm = String(key || "");
+        await geoZoomToCity(cityNorm);
+      }
+    });
+  });
+}
+
+async function geoZoomToCity(cityNorm) {
+  if (!GEO_MAP || !GEO_UF) return;
+
+  const pts = await loadUfPoints(GEO_UF);
+  const match = pts.find((p) => normTextGeo(p.city || p.name) === cityNorm);
+  if (!match) return;
+
+  const lat = Number(match.lat);
+  const lng = Number(match.lng);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+
+  GEO_MAP.setView([lat, lng], 9, { animate: true });
+}
+
+function buildLegendRanges(max) {
+  // você pode ajustar esses “degraus” como preferir
+  if (max <= 0) return [];
+
+  // Exemplo com ranges fixos que incluem "10–20"
+  // e se max for maior, cria o último como "21+"
+  const ranges = [
+    { from: 1, to: 5 },
+    { from: 6, to: 10 },
+    { from: 11, to: 20 },
+  ];
+
+  if (max > 20) ranges.push({ from: 21, to: max });
+
+  // remove ranges que não fazem sentido dado o max
+  return ranges
+    .filter((r) => r.from <= max)
+    .map((r) => ({
+      from: r.from,
+      to: Math.min(r.to, max),
+    }));
+}
+
+function setMapLegend({ max, title }) {
+  if (!GEO_MAP) return;
+
+  // remove a legenda anterior
+  if (GEO_LEGEND_CTRL) {
+    GEO_LEGEND_CTRL.remove();
+    GEO_LEGEND_CTRL = null;
+  }
+
+  const ranges = buildLegendRanges(max);
+
+  GEO_LEGEND_CTRL = L.control({ position: "bottomright" });
+  GEO_LEGEND_CTRL.onAdd = function () {
+    const div = L.DomUtil.create("div", "geo-map-legend");
+
+    const head = `<div class="geo-map-legend__title">${escapeHtml(
+      title,
+    )}</div>`;
+    if (!ranges.length) {
+      div.innerHTML =
+        head + `<div class="geo-map-legend__item muted">Sem dados</div>`;
+      return div;
+    }
+
+    const items = ranges
+      .map((r) => {
+        const mid = (r.from + r.to) / 2;
+        const ratio = max > 0 ? mid / max : 0;
+        const swatch = colorForRatio(ratio);
+        const label = r.to >= max ? `${r.from}+` : `${r.from}–${r.to}`;
+        return `<div class="geo-map-legend__item"><span class="geo-map-legend__swatch" style="background:${swatch};"></span><span class="geo-map-legend__label">${escapeHtml(
+          label,
+        )} vendas</span></div>`;
+      })
+      .join("");
+
+    div.innerHTML = head + items;
+    return div;
+  };
+
+  GEO_LEGEND_CTRL.addTo(GEO_MAP);
+}
+
+async function renderGeoBrazil() {
+  ensureGeoDomBound();
+  ensureGeoMap();
+
+  setGeoHeader({
+    title: "Brasil",
+    subtitle: "Vendas por estado",
+    indexSubtitle: "Vendas por estado",
+    showBack: false,
+  });
+
+  // limpa heat layer (se estiver em UF)
+  if (GEO_HEAT) {
+    GEO_MAP.removeLayer(GEO_HEAT);
+    GEO_HEAT = null;
+  }
+
+  const months = GEO_MONTHS || 6;
+  setText("geoSalesLegend", "Carregando…");
+
+  const mode = GEO_MODE || "total";
+  const data = await apiGet(
+    `/shops/${SHOP_PATH_PLACEHOLDER}/geo/sales?months=${encodeURIComponent(String(months))}&mode=${encodeURIComponent(mode)}`,
+  );
+  const items = Array.isArray(data?.items) ? data.items : [];
+
+  // mapa uf -> count
+  const countMap = new Map(
+    items.map((x) => [String(x.uf).toUpperCase(), Number(x.count || 0)]),
+  );
+  const max = Math.max(0, ...Array.from(countMap.values()));
+  setMapLegend({ max, title: "Vendas (UF)" });
+  // index (lado direito)
+  renderGeoIndex(items, { mode: "BR", activeKey: GEO_UF });
+
+  // geojson do Brasil
+  const geo = await loadBrStatesGeoJson();
+
+  // remove layer antigo
+  if (GEO_STATES_LAYER) {
+    GEO_MAP.removeLayer(GEO_STATES_LAYER);
+    GEO_STATES_LAYER = null;
+  }
+
+  function styleFeature(feature) {
+    const uf = getUfFromFeature(feature);
+    const c = uf ? countMap.get(uf) || 0 : 0;
+    const r = max > 0 ? c / max : 0;
+    return {
+      weight: 1,
+      color: borderForRatio(r),
+      fillColor: colorForRatio(r),
+      fillOpacity: 0.85,
+    };
+  }
+
+  function onEachFeature(feature, layer) {
+    const uf = getUfFromFeature(feature) || "—";
+    const c = countMap.get(uf) || 0;
+
+    layer.on("click", async () => {
+      GEO_VIEW = "UF";
+      GEO_UF = uf;
+      await renderGeoState(uf);
+    });
+
+    layer.on("mouseover", () => {
+      layer.setStyle({ weight: 2, color: "rgba(238,77,45,0.85)" });
+      layer
+        .bindTooltip(`${uf} • ${fmtInt(c)} venda(s)`, { sticky: true })
+        .openTooltip();
+    });
+
+    layer.on("mouseout", () => {
+      GEO_STATES_LAYER.resetStyle(layer);
+      layer.closeTooltip();
+    });
+  }
+
+  GEO_STATES_LAYER = L.geoJSON(geo, {
+    style: styleFeature,
+    onEachFeature: onEachFeature,
+  }).addTo(GEO_MAP);
+
+  // zoom para Brasil
+  try {
+    GEO_MAP.fitBounds(GEO_STATES_LAYER.getBounds(), { padding: [18, 18] });
+  } catch (_) {}
+
+  setText(
+    "geoSalesLegend",
+    `Período: últimos ${months} meses • Total (com geo): ${fmtInt(
+      data?.total || 0,
+    )}`,
+  );
+}
+
+async function renderGeoState(uf) {
+  ensureGeoDomBound();
+  ensureGeoMap();
+
+  const months = GEO_MONTHS || 6;
+  const UF = String(uf || "").toUpperCase();
+
+  setGeoHeader({
+    title: `Estado: ${UF}`,
+    subtitle: "Vendas por cidade (heatmap)",
+    indexSubtitle: "Vendas por cidade",
+    showBack: true,
+  });
+
+  setText("geoSalesLegend", "Carregando…");
+
+  // carrega agregação por cidade
+  const mode = GEO_MODE || "total";
+  const data = await apiGet(
+    `/shops/${SHOP_PATH_PLACEHOLDER}/geo/sales/${encodeURIComponent(UF)}?months=${encodeURIComponent(String(months))}&mode=${encodeURIComponent(mode)}`,
+  );
+
+  const items = Array.isArray(data?.items) ? data.items : [];
+  const cityCount = new Map(
+    items.map((x) => [
+      String(x.cityNorm || normTextGeo(x.city)),
+      Number(x.count || 0),
+    ]),
+  );
+
+  // index (lado direito)
+  renderGeoIndex(items, { mode: "UF", activeKey: null });
+
+  // carrega pontos do estado
+  const pts = await loadUfPoints(UF);
+
+  // monta heat points
+  const max = Math.max(0, ...items.map((x) => Number(x.count || 0)));
+
+  const heatPoints = [];
+  for (const p of pts) {
+    const lat = Number(p.lat);
+    const lng = Number(p.lng);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
+
+    const cityNorm = normTextGeo(p.city || p.name);
+    const c = cityCount.get(cityNorm) || 0;
+    if (c <= 0) continue;
+
+    // intensidade 0..1
+    const intensity = max > 0 ? c / max : 0;
+    heatPoints.push([lat, lng, intensity]);
+  }
+
+  // remove layer de estados (pra não “poluir” no drilldown)
+  if (GEO_STATES_LAYER) {
+    GEO_MAP.removeLayer(GEO_STATES_LAYER);
+    GEO_STATES_LAYER = null;
+  }
+
+  // remove heat anterior
+  if (GEO_HEAT) {
+    GEO_MAP.removeLayer(GEO_HEAT);
+    GEO_HEAT = null;
+  }
+
+  GEO_HEAT = L.heatLayer(heatPoints, {
+    radius: 22,
+    blur: 18,
+    maxZoom: 10,
+    minOpacity: 0.25,
+    gradient: { 0.2: "#ff6a00", 0.6: "#ff2e93", 1.0: "#ffffff" },
+  }).addTo(GEO_MAP);
+
+  // zoom aproximado pro estado: usa bounds dos pontos
+  const latlngs = heatPoints.map((x) => [x[0], x[1]]);
+  if (latlngs.length) {
+    try {
+      GEO_MAP.fitBounds(latlngs, { padding: [18, 18] });
+    } catch (_) {}
+  }
+
+  setText(
+    "geoSalesLegend",
+    `Período: últimos ${months} meses • ${UF} • Total (com geo): ${fmtInt(
+      data?.total || 0,
+    )}`,
+  );
+}
+
+async function loadGeoSales() {
+  await ensureShopSelected();
+  ensureGeoDomBound();
+  ensureGeoMap();
+
+  // Leaflet precisa recalcular tamanho quando a tab fica visível
+  setTimeout(() => {
+    try {
+      GEO_MAP && GEO_MAP.invalidateSize();
+    } catch (_) {}
+  }, 60);
+
+  if (GEO_VIEW === "UF" && GEO_UF) {
+    await renderGeoState(GEO_UF);
+  } else {
+    await renderGeoBrazil();
+  }
+}
+
+/* ---------------- Products (DB) ---------------- */
+async function loadProducts() {
+  const grid = $("#products-grid");
+  grid.innerHTML = `<div class="card"><div class="muted">Carregando produtos...</div></div>`;
+
+  try {
+    await ensureShopSelected();
+
+    const qs =
+      `page=${PRODUCTS_PAGE}` +
+      `&pageSize=${PRODUCTS_PAGE_SIZE}` +
+      `&q=${encodeURIComponent(PRODUCTS_Q)}` +
+      `&sortBy=${encodeURIComponent(PRODUCTS_SORT_BY)}` +
+      `&sortDir=${encodeURIComponent(PRODUCTS_SORT_DIR)}`;
+
+    const data = await apiGet(`/shops/${SHOP_PATH_PLACEHOLDER}/products?${qs}`);
+
+    const items = data.items || data.products || [];
+    const meta = data.meta || {};
+
+    PRODUCTS_PAGE = meta.page || PRODUCTS_PAGE;
+    PRODUCTS_TOTAL_PAGES = meta.totalPages || 1;
+
+    setText(
+      "products-page-info",
+      `Página ${PRODUCTS_PAGE} de ${PRODUCTS_TOTAL_PAGES} • Total: ${
+        meta.total ?? "—"
+      }`,
+    );
+
+    const prev = $("#products-prev");
+    const next = $("#products-next");
+    const first = $("#products-first");
+    const last = $("#products-last");
+
+    if (prev) prev.disabled = PRODUCTS_PAGE <= 1;
+    if (first) first.disabled = PRODUCTS_PAGE <= 1;
+    if (next) next.disabled = PRODUCTS_PAGE >= PRODUCTS_TOTAL_PAGES;
+    if (last) last.disabled = PRODUCTS_PAGE >= PRODUCTS_TOTAL_PAGES;
+
+    if (!items.length) {
+      grid.innerHTML = `<div class="card"><div class="muted">Nenhum produto encontrado no banco. Clique em "Sincronizar Produtos".</div></div>`;
+      return;
+    }
+
+    grid.innerHTML = items
+      .map((p) => {
+        const itemId = escapeHtml(p.itemId ?? p.item_id);
+        const title = escapeHtml(p.title || p.item_name || "Sem título");
+        const status = escapeHtml(p.status || p.item_status || "—");
+
+        const stockValue = p.totalStock ?? p.stock;
+        const stock = escapeHtml(stockValue ?? "—");
+
+        const sold = escapeHtml(p.sold ?? "—");
+        const img = p.images?.[0]?.url ? escapeHtml(p.images[0].url) : "";
+
+        const ratingStar = p.ratingStar ?? null;
+        const ratingCount = p.ratingCount ?? null;
+
+        const ratingStarNum = ratingStar == null ? null : Number(ratingStar);
+        const ratingText =
+          ratingStarNum == null || Number.isNaN(ratingStarNum)
+            ? "⭐ —"
+            : `⭐ ${ratingStarNum.toFixed(1)}${
+                ratingCount != null ? ` (${ratingCount})` : ""
+              }`;
+
+        const priceMin = p.priceMin ?? null;
+        const priceMax = p.priceMax ?? null;
+
+        let priceText = "Preço: —";
+        if (priceMin != null && priceMax != null) {
+          const pmin = formatBRLFixed90(priceMin);
+          const pmax = formatBRLFixed90(priceMax);
+
+          priceText =
+            priceMin === priceMax
+              ? `Preço: ${escapeHtml(pmin)}`
+              : `Preço: ${escapeHtml(pmin)} – ${escapeHtml(pmax)}`;
+        }
+
+        return `
+          <div class="card clickable" data-item-id="${itemId}">
+            <div class="card-title">${title}</div>
+            ${img ? `<img class="product-cover" src="${img}" alt="" />` : ""}
+            <div class="muted">Item ID: ${itemId}</div>
+            <div class="muted">Status: ${status}</div>
+            <div class="muted">${escapeHtml(ratingText)}</div>
+            <div class="muted">${priceText}</div>
+            <div class="muted">Estoque: ${stock} • Vendidos: ${sold}</div>
+          </div>
+        `;
+      })
+      .join("");
+
+    $all("[data-item-id]").forEach((el) => {
+      el.addEventListener("click", async () => {
+        const itemId = el.getAttribute("data-item-id");
+        await openProductDetail(itemId);
+      });
+    });
+  } catch (e) {
+    $("#products-grid").innerHTML =
+      `<div class="card"><div class="muted">Erro ao carregar produtos: ${escapeHtml(
+        e.message,
+      )}</div></div>`;
+  }
+}
+
+async function openProductDetail(itemId) {
+  openModal(
+    `Produto ${escapeHtml(itemId)}`,
+    `<div class="muted">Carregando detalhes...</div>`,
+  );
+
+  try {
+    await ensureShopSelected();
+
+    const data = await apiGet(
+      `/shops/${SHOP_PATH_PLACEHOLDER}/products/${encodeURIComponent(
+        itemId,
+      )}/full`,
+    );
+
+    const p = data.product || data;
+    const extra = data.extra || {};
+
+    let html = "";
+
+    html += `<div class="product-detail-grid">`;
+    html += kv("Status", escapeHtml(p.status || "—"));
+    html += kv("Brand", escapeHtml(p.brand || "—"));
+    html += kv("Stock", escapeHtml(p.totalStock ?? p.stock ?? "—"));
+    html += kv("Sold (total)", escapeHtml(p.sold ?? "—"));
+    html += kv("Currency", escapeHtml(p.currency || "—"));
+    html += `</div>`;
+
+    html += `<div style="margin-top:14px; font-weight:800;">Descrição</div>`;
+    html += `<div class="card">${escapeHtml(extra.description || "—")}</div>`;
+
+    const attrs = extra.attributes;
+    if (Array.isArray(attrs) && attrs.length) {
+      html += `<div style="margin-top:14px; font-weight:800;">Ficha técnica</div>`;
+      html += attrs
+        .map((a) => {
+          const name =
+            a?.original_attribute_name ||
+            a?.attribute_name ||
+            a?.attribute_id ||
+            "—";
+
+          const values = Array.isArray(a?.attribute_value_list)
+            ? a.attribute_value_list
+                .map((v) => v?.original_value_name || v?.value || "")
+                .filter(Boolean)
+                .join(", ")
+            : "";
+
+          return `<div class="card">${escapeHtml(name)}: ${escapeHtml(
+            values || "—",
+          )}</div>`;
+        })
+        .join("");
+    }
+
+    if (extra.daysToShip != null || Array.isArray(extra.logistics)) {
+      html += `<div style="margin-top:14px; font-weight:800;">Envio</div>`;
+
+      if (extra.daysToShip != null) {
+        html += `<div class="card">Days to ship: ${escapeHtml(
+          extra.daysToShip,
+        )}</div>`;
+      }
+
+      if (Array.isArray(extra.logistics) && extra.logistics.length) {
+        html += extra.logistics
+          .map((l) => {
+            const name = l?.logistic_name || "—";
+            const enabled = l?.enabled ? "Sim" : "Não";
+            const fee =
+              l?.estimated_shipping_fee != null
+                ? String(l.estimated_shipping_fee)
+                : "—";
+            return `<div class="card">${escapeHtml(name)} • Ativo: ${escapeHtml(
+              enabled,
+            )} • Frete estimado: ${escapeHtml(fee)}</div>`;
+          })
+          .join("");
+      }
+    }
+
+    if (extra.dimension || extra.weight != null) {
+      html += `<div style="margin-top:14px; font-weight:800;">Dimensões / Peso</div>`;
+
+      if (extra.dimension) {
+        const d = extra.dimension;
+        html += `<div class="card">Pacote: ${escapeHtml(
+          d.package_length ?? "—",
+        )} x ${escapeHtml(d.package_width ?? "—")} x ${escapeHtml(
+          d.package_height ?? "—",
+        )}</div>`;
+      }
+
+      if (extra.weight != null) {
+        html += `<div class="card">Peso: ${escapeHtml(extra.weight)} kg</div>`;
+      }
+    }
+
+    if (Array.isArray(p.images) && p.images.length) {
+      html += `<div style="margin-top:14px; font-weight:800;">Imagens</div>`;
+      html +=
+        `<div class="grid-3">` +
+        p.images
+          .slice(0, 6)
+          .map(
+            (im) =>
+              `<div class="card"><img src="${escapeHtml(
+                im.url,
+              )}" alt="" style="width:100%; border-radius:12px; border:1px solid rgba(255,255,255,0.10);" /></div>`,
+          )
+          .join("") +
+        `</div>`;
+    }
+
+    if (Array.isArray(p.models) && p.models.length) {
+      html += `<div style="margin-top:14px; font-weight:800;">Variações</div>`;
+      html += p.models
+        .map((m) => {
+          return `
+            <div class="card" style="margin:10px 0;">
+              <div class="card-title">${escapeHtml(m.name || "Modelo")}</div>
+              <div class="muted">Model ID: ${escapeHtml(
+                String(m.modelId),
+              )}</div>
+              <div class="muted">SKU: ${escapeHtml(m.sku || "—")}</div>
+              <div class="muted">Estoque: ${escapeHtml(
+                m.stock ?? "—",
+              )} • Vendidos: ${escapeHtml(m.sold ?? "—")}</div>
+              <div class="muted">Preço: ${escapeHtml(
+                formatBRLFixed90(m.price),
+              )}</div>
+            </div>
+          `;
+        })
+        .join("");
+    } else {
+      html += `<div class="muted" style="margin-top:14px;">Sem variações salvas.</div>`;
+    }
+
+    $("#modal-body").innerHTML = html;
+  } catch (e) {
+    $("#modal-body").innerHTML =
+      `<div class="muted">Erro ao carregar detalhes: ${escapeHtml(
+        e.message,
+      )}</div>`;
+  }
+}
+
+/* ---------------- Sync Buttons ---------------- */
+
+function initSyncButtons() {
+  const btnOrders = $("#btn-sync-orders");
+  const btnProducts = $("#btn-sync-products");
+
+  if (btnOrders) {
+    btnOrders.addEventListener("click", async () => {
+      setText("orders-sync-status", "Sincronizando pedidos...");
+      try {
+        const res = await apiPost(
+          `/shops/${SHOP_PATH_PLACEHOLDER}/orders/sync?rangeDays=180`,
+        );
+        setText(
+          "orders-sync-status",
+          `OK • Processados: ${res?.summary?.processed ?? "—"}`,
+        );
+        await loadOrders();
+      } catch (e) {
+        setText("orders-sync-status", `Erro: ${e.message}`);
+      }
+    });
+  }
+
+  if (btnProducts) {
+    btnProducts.addEventListener("click", async () => {
+      setText("products-sync-status", "Sincronizando produtos...");
+      try {
+        const res = await apiPost(
+          `/shops/${SHOP_PATH_PLACEHOLDER}/products/sync`,
+        );
+        setText(
+          "products-sync-status",
+          `OK • Upserted: ${res?.summary?.upserted ?? "—"}`,
+        );
+        await loadProducts();
+      } catch (e) {
+        setText("products-sync-status", `Erro: ${e.message}`);
+      }
+    });
+  }
+}
+
+function initProductsToolbar() {
+  const pageSizeSel = $("#products-page-size");
+  const sortBySel = $("#products-sort-by");
+  const sortDirSel = $("#products-sort-dir");
+
+  const qInput = $("#products-q");
+  const btnSearch = $("#products-search");
+  const btnClear = $("#products-clear");
+
+  const first = $("#products-first");
+  const prev = $("#products-prev");
+  const next = $("#products-next");
+  const last = $("#products-last");
+
+  if (pageSizeSel) {
+    pageSizeSel.value = String(PRODUCTS_PAGE_SIZE);
+    pageSizeSel.addEventListener("change", async () => {
+      PRODUCTS_PAGE_SIZE = Number(pageSizeSel.value);
+      PRODUCTS_PAGE = 1;
+      await loadProducts();
+    });
+  }
+
+  if (sortBySel) {
+    sortBySel.value = PRODUCTS_SORT_BY;
+    sortBySel.addEventListener("change", async () => {
+      PRODUCTS_SORT_BY = String(sortBySel.value || "updatedAt");
+      PRODUCTS_PAGE = 1;
+      await loadProducts();
+    });
+  }
+
+  if (sortDirSel) {
+    sortDirSel.value = PRODUCTS_SORT_DIR;
+    sortDirSel.addEventListener("change", async () => {
+      PRODUCTS_SORT_DIR = String(sortDirSel.value || "desc");
+      PRODUCTS_PAGE = 1;
+      await loadProducts();
+    });
+  }
+
+  const doSearch = async () => {
+    PRODUCTS_Q = String(qInput?.value || "").trim();
+    PRODUCTS_PAGE = 1;
+    await loadProducts();
+  };
+
+  if (btnSearch) btnSearch.addEventListener("click", doSearch);
+
+  if (qInput) {
+    qInput.addEventListener("keydown", async (e) => {
+      if (e.key === "Enter") await doSearch();
+    });
+  }
+
+  if (btnClear) {
+    btnClear.addEventListener("click", async () => {
+      if (qInput) qInput.value = "";
+      PRODUCTS_Q = "";
+      PRODUCTS_PAGE = 1;
+      await loadProducts();
+    });
+  }
+
+  if (first) {
+    first.addEventListener("click", async () => {
+      PRODUCTS_PAGE = 1;
+      await loadProducts();
+    });
+  }
+
+  if (prev) {
+    prev.addEventListener("click", async () => {
+      PRODUCTS_PAGE = Math.max(1, PRODUCTS_PAGE - 1);
+      await loadProducts();
+    });
+  }
+
+  if (next) {
+    next.addEventListener("click", async () => {
+      PRODUCTS_PAGE = Math.min(PRODUCTS_TOTAL_PAGES, PRODUCTS_PAGE + 1);
+      await loadProducts();
+    });
+  }
+
+  if (last) {
+    last.addEventListener("click", async () => {
+      PRODUCTS_PAGE = PRODUCTS_TOTAL_PAGES;
+      await loadProducts();
+    });
+  }
+}
+function initHeaderButtons() {
+  const btnSwitch = document.getElementById("btn-switch-shop");
+  const btnLogout = document.getElementById("btn-logout");
+
+  if (btnSwitch) {
+    btnSwitch.addEventListener("click", async () => {
+      try {
+        await loadMe();
+        const shops = Array.isArray(ME?.shops) ? ME.shops : [];
+        const role = String(ME?.user?.role || "");
+        const activeShopId = ME?.activeShopId ?? null;
+
+        openShopSwitcherModal({ shops, role, activeShopId });
+      } catch (e) {
+        openModal("Erro", `<div class="muted">${escapeHtml(e.message)}</div>`);
+      }
+    });
+  }
+
+  if (btnLogout) {
+    btnLogout.addEventListener("click", async () => {
+      try {
+        await apiPost("/auth/logout");
+      } catch (_) {}
+      window.location.href = "/shopee";
+    });
+  }
+}
+
+function openShopSwitcherModal({ shops, role, activeShopId }) {
+  const canAddShop = role === "ADMIN" || role === "SUPER_ADMIN";
+  const limitReached = shops.length >= 2;
+
+  const shopsHtml = shops.length
+    ? shops
+        .map((s) => {
+          const isActive =
+            activeShopId != null && Number(s.id) === Number(activeShopId);
+
+          const title = s.shopId
+            ? `ShopId Shopee: ${escapeHtml(String(s.shopId))}`
+            : "Loja";
+          const region = s.region ? ` • ${escapeHtml(String(s.region))}` : "";
+          const status = s.status ? ` • ${escapeHtml(String(s.status))}` : "";
+
+          return `
+            <button class="btn btn-primary" data-select-shop="${escapeHtml(
+              String(s.id),
+            )}" style="width:100%; margin-top:10px;">
+              ${title}${region}${status}${isActive ? ` • (ATIVA)` : ""}
+            </button>
+          `;
+        })
+        .join("")
+    : `<div class="muted" style="margin-top:10px;">Nenhuma loja vinculada.</div>`;
+
+  const left = `
+    <div style="flex:1; min-width:280px;">
+      <div class="card-title">Lojas desta conta</div>
+      <div class="muted" style="margin-top:6px;">Selecione qual deseja usar.</div>
+      <div style="margin-top:10px;">${shopsHtml}</div>
+    </div>
+  `;
+
+  const right = canAddShop
+    ? `
+      <div style="flex:1; min-width:280px;">
+        <div class="card-title">Adicionar nova loja</div>
+        <div class="muted" style="margin-top:6px;">
+          ${
+            limitReached
+              ? "Limite de 2 lojas por conta atingido."
+              : "Você pode adicionar mais 1 loja (limite 2)."
+          }
+        </div>
+        <div style="margin-top:10px;">
+          <button id="btn-add-shop" class="btn btn-primary" ${
+            limitReached ? "disabled" : ""
+          }>+ Adicionar nova loja</button>
+        </div>
+      </div>
+    `
+    : `
+      <div style="flex:1; min-width:280px;">
+        <div class="card-title">Adicionar nova loja</div>
+        <div class="muted" style="margin-top:6px;">Somente usuários Admin podem adicionar lojas.</div>
+      </div>
+    `;
+
+  openModal(
+    "Trocar loja",
+    `<div style="display:flex; gap:12px; flex-wrap:wrap; align-items:flex-start;">${left}${right}</div>`,
+  );
+
+  // selecionar loja (qualquer usuário pode)
+  $all("[data-select-shop]").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const shopId = Number(btn.getAttribute("data-select-shop"));
+      try {
+        await apiPost("/auth/select-shop", { shopId });
+        closeModal();
+        await loadMe();
+      } catch (e) {
+        openModal("Erro", `<div class="muted">${escapeHtml(e.message)}</div>`);
+      }
+    });
+  });
+
+  // adicionar loja (admin)
+  const btnAdd = document.getElementById("btn-add-shop");
+  if (btnAdd && !btnAdd.disabled) {
+    btnAdd.addEventListener("click", async () => {
+      try {
+        const data = await apiGet("/auth/url?mode=add_shop");
+        const url = data?.auth_url || null;
+        if (url) window.location.href = url;
+        else
+          openModal(
+            "Erro",
+            `<div class="muted">Não foi possível gerar o link.</div>`,
+          );
+      } catch (e) {
+        openModal("Erro", `<div class="muted">${escapeHtml(e.message)}</div>`);
+      }
+    });
+  }
+}
+
+function getQueryParam(name) {
+  const u = new URL(window.location.href);
+  return u.searchParams.get(name);
+}
+
+function activateTab(tab) {
+  const tabs = $all(".tab");
+  const panels = $all(".tab-panel");
+
+  tabs.forEach((b) => b.classList.toggle("active", b.dataset.tab === tab));
+  panels.forEach((p) => p.classList.toggle("active", p.id === `tab-${tab}`));
+}
+
+async function startShopeeOauthFlowIfRequested() {
+  const tab = getQueryParam("tab");
+  const startOauth = getQueryParam("startOauth");
+
+  if (tab === "auth") activateTab("auth");
+  if (startOauth !== "1") return;
+
+  try {
+    const data = await apiGet("/auth/url");
+    const url = data?.auth_url || data?.authUrl || data?.url || null;
+
+    const preview = document.getElementById("auth-url-preview");
+    if (preview)
+      preview.textContent = url ? url : "Não foi possível gerar o link.";
+
+    if (url) window.location.href = url;
+  } catch (e) {
+    const preview = document.getElementById("auth-url-preview");
+    if (preview) preview.textContent = `Erro ao gerar link: ${e.message}`;
+  }
+}
+
+async function loadAdmin() {
+  const root = document.getElementById("admin-root");
+  if (!root) return;
+
+  root.innerHTML = `<div class="muted">Carregando...</div>`;
+
+  try {
+    await loadMe();
+    const role = String(ME?.user?.role || "");
+
+    if (role !== "ADMIN" && role !== "SUPER_ADMIN") {
+      root.innerHTML = `<div class="muted">Sem permissão.</div>`;
+      return;
+    }
+
+    const usersData = await apiGet("/admin/users");
+    const users = Array.isArray(usersData?.users) ? usersData.users : [];
+
+    const formHtml = `
+      <div class="card" style="margin-bottom:12px;">
+        <div class="card-title">Adicionar acesso novo</div>
+        <div class="muted" style="margin-top:6px;">Crie um usuário para acessar esta conta.</div>
+
+        <div style="margin-top:12px; display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+          <input id="admin-new-name" class="input" placeholder="Nome" />
+          <input id="admin-new-email" class="input" placeholder="E-mail" />
+          <input id="admin-new-pass" class="input" placeholder="Senha" type="password" />
+          <select id="admin-new-role" class="select">
+            <option value="VIEWER" selected>Usuário</option>
+            <option value="ADMIN">Admin</option>
+          </select>
+        </div>
+
+        <div style="margin-top:12px; display:flex; gap:10px; align-items:center;">
+          <button id="admin-create-user" class="btn btn-primary">Criar acesso</button>
+          <div id="admin-create-msg" class="muted"></div>
+        </div>
+      </div>
+    `;
+
+    const listHtml = `
+      <div class="card">
+        <div class="card-title">Acessos da Conta</div>
+        <div class="muted" style="margin-top:6px;">Troque a função entre Admin e Usuário.</div>
+
+        <div style="margin-top:10px;">
+          ${
+            users.length
+              ? users
+                  .map((u) => {
+                    const id = escapeHtml(String(u.id));
+                    const name = escapeHtml(u.name || "—");
+                    const email = escapeHtml(u.email || "—");
+                    const uRole = escapeHtml(String(u.role || "VIEWER"));
+
+                    return `
+                      <div class="card" style="margin-top:10px;">
+                        <div class="card-title">${name}</div>
+                        <div class="muted">${email}</div>
+                         <button class="btn" data-edit-user="${id}">Editar</button>
+                        <div style="margin-top:10px; display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                          <div class="muted">Função atual: <strong>${uRole}</strong></div>
+                          <button class="btn btn-ghost" data-role-toggle="${id}" data-current-role="${uRole}">
+                          
+                            Alternar para ${
+                              uRole === "ADMIN" ? "Usuário" : "Admin"
+                            }
+                          </button>
+                        </div>
+                      </div>
+                    `;
+                  })
+                  .join("")
+              : `<div class="muted" style="margin-top:10px;">Nenhum usuário.</div>`
+          }
+        </div>
+      </div>
+    `;
+
+    root.innerHTML = formHtml + renderAdminDbTools() + listHtml;
+    document
+      .getElementById("btnAdminDbBackup")
+      ?.addEventListener("click", adminDownloadDbBackup);
+    document
+      .getElementById("btnAdminDbRestore")
+      ?.addEventListener("click", adminRestoreDbBackup);
+    // Create user
+    const btnCreate = document.getElementById("admin-create-user");
+    const msg = document.getElementById("admin-create-msg");
+
+    if (btnCreate) {
+      btnCreate.addEventListener("click", async () => {
+        const name = String(
+          document.getElementById("admin-new-name")?.value || "",
+        ).trim();
+        const email = String(
+          document.getElementById("admin-new-email")?.value || "",
+        ).trim();
+        const password = String(
+          document.getElementById("admin-new-pass")?.value || "",
+        );
+        const newRole = String(
+          document.getElementById("admin-new-role")?.value || "VIEWER",
+        ).toUpperCase();
+
+        if (!name || !email || !password) {
+          if (msg) msg.textContent = "Informe nome, e-mail e senha.";
+          return;
+        }
+
+        try {
+          if (msg) msg.textContent = "Criando...";
+          await apiPost("/admin/users", {
+            name,
+            email,
+            password,
+            role: newRole,
+          });
+          if (msg) msg.textContent = "Acesso criado com sucesso.";
+          await loadAdmin();
+        } catch (e) {
+          if (msg) msg.textContent = `Erro: ${e.message}`;
+        }
+      });
+    }
+
+    // Toggle role ADMIN <-> VIEWER
+    $all("[data-role-toggle]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const userId = Number(btn.getAttribute("data-role-toggle"));
+        const current = String(
+          btn.getAttribute("data-current-role") || "VIEWER",
+        ).toUpperCase();
+        const nextRole = current === "ADMIN" ? "VIEWER" : "ADMIN";
+
+        try {
+          await apiPatch(`/admin/users/${userId}/role`, { role: nextRole });
+          await loadAdmin();
+        } catch (e) {
+          openModal(
+            "Erro",
+            `<div class="muted">${escapeHtml(e.message)}</div>`,
+          );
+        }
+      });
+    });
+
+    $all("[data-edit-user]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const userId = Number(btn.getAttribute("data-edit-user"));
+        const u = users.find((x) => Number(x.id) === userId);
+        if (!u) return;
+
+        openModal(
+          "Editar usuário",
+          `
+        <div class="muted">Atualize nome/e-mail e (opcional) defina uma nova senha.</div>
+        <div style="margin-top:12px; display:grid; gap:10px;">
+          <input id="edit-user-name" class="input" placeholder="Nome" value="${escapeHtml(
+            u.name || "",
+          )}" />
+          <input id="edit-user-email" class="input" placeholder="E-mail" value="${escapeHtml(
+            u.email || "",
+          )}" />
+          <input id="edit-user-pass" class="input" placeholder="Nova senha (opcional)" type="password" />
+        </div>
+        <div style="margin-top:12px; display:flex; gap:10px; flex-wrap:wrap;">
+          <button id="btn-save-user" class="btn btn-primary">Salvar</button>
+          <button id="btn-del-user" class="btn btn-ghost">Excluir usuário</button>
+        </div>
+        <div id="edit-user-msg" class="muted" style="margin-top:10px;"></div>
+      `,
+        );
+
+        document
+          .getElementById("btn-save-user")
+          ?.addEventListener("click", async () => {
+            const name = String(
+              document.getElementById("edit-user-name")?.value || "",
+            ).trim();
+            const email = String(
+              document.getElementById("edit-user-email")?.value || "",
+            ).trim();
+            const password = String(
+              document.getElementById("edit-user-pass")?.value || "",
+            );
+
+            try {
+              const body = {};
+              if (name) body.name = name;
+              if (email) body.email = email;
+              if (password) body.password = password;
+
+              document.getElementById("edit-user-msg").textContent =
+                "Salvando...";
+              await apiPatch(`/admin/users/${userId}`, body);
+              document.getElementById("edit-user-msg").textContent =
+                "Salvo com sucesso.";
+              closeModal();
+              await loadAdmin();
+            } catch (e) {
+              document.getElementById("edit-user-msg").textContent =
+                `Erro: ${e.message}`;
+            }
+          });
+
+        document
+          .getElementById("btn-del-user")
+          ?.addEventListener("click", async () => {
+            try {
+              document.getElementById("edit-user-msg").textContent =
+                "Excluindo...";
+              await apiDelete(`/admin/users/${userId}`);
+              closeModal();
+              await loadAdmin();
+            } catch (e) {
+              document.getElementById("edit-user-msg").textContent =
+                `Erro: ${e.message}`;
+            }
+          });
+      });
+    });
+  } catch (e) {
+    root.innerHTML = `<div class="muted">Erro no Admin: ${escapeHtml(
+      e.message,
+    )}</div>`;
+  }
+}
+function renderAdminDbTools() {
+  return `
+    <div class="section-card admin-db">
+      <div class="section-card__header">
+        <div>
+          <div class="section-title">Backups do banco</div>
+          <div class="muted">Exportar/Restaurar o DB inteiro em JSON (uso emergencial).</div>
+        </div>
+        <div class="section-actions">
+          <span class="badge badge--yellow">⚠️ Emergência</span>
+        </div>
+      </div>
+
+      <div class="section-card__body">
+        <div class="admin-db__grid">
+          <!-- Download -->
+          <div class="admin-db__panel">
+            <div class="admin-db__panel-title">Backup (download)</div>
+            <div class="muted admin-db__panel-sub">
+              Baixa um arquivo JSON com os dados atuais do banco.
+            </div>
+
+            <div class="admin-db__actions">
+              <button id="btnAdminDbBackup" class="btn btn-primary">Baixar backup</button>
+            </div>
+
+            <div class="muted admin-db__hint">
+              Dica: guarde em local seguro. O arquivo pode conter dados sensíveis.
+            </div>
+          </div>
+
+          <!-- Restore -->
+          <div class="admin-db__panel admin-db__panel--danger">
+            <div class="admin-db__panel-title">Restore (upload)</div>
+            <div class="muted admin-db__panel-sub">
+              Substitui o banco atual pelo conteúdo do JSON.
+            </div>
+
+            <div class="admin-db__danger-note">
+              <strong>ATENÇÃO:</strong> use apenas em caso de perda do DB. Depois, o <strong>sync normal</strong> volta a prevalecer e pode sobrescrever.
+            </div>
+
+            <div class="admin-db__actions admin-db__actions--stack">
+              <input id="adminDbRestoreFile" class="input admin-db__file" type="file" accept="application/json" />
+              <button id="btnAdminDbRestore" class="btn btn-ghost admin-db__restore-btn">Restaurar backup</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="adminDbMsg" class="muted admin-db__msg"></div>
+      </div>
+    </div>
+  `;
+}
+async function adminDownloadDbBackup() {
+  const msg = document.getElementById("adminDbMsg");
+  const btn = document.getElementById("btnAdminDbBackup");
+  try {
+    if (btn) btn.disabled = true;
+    if (msg) msg.textContent = "Gerando backup...";
+
+    const r = await fetch("/admin/db/backup", { credentials: "include" });
+    if (!r.ok) {
+      const t = await r.text().catch(() => "");
+      if (msg) msg.textContent = `Erro: ${t || `HTTP ${r.status}`}`;
+      return;
+    }
+
+    const blob = await r.blob();
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `db-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    URL.revokeObjectURL(url);
+    if (msg) msg.textContent = "";
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+async function adminRestoreDbBackup() {
+  const msg = document.getElementById("adminDbMsg");
+  const input = document.getElementById("adminDbRestoreFile");
+  const file = input?.files?.[0];
+
+  if (!file) {
+    if (msg) msg.textContent = "Selecione um arquivo .json primeiro.";
+    return;
+  }
+
+  // confirmação forte (pra evitar clique acidental)
+  openModal(
+    "Confirmar restauração",
+    `<div class="muted">Isso vai substituir o banco atual pelo conteúdo do backup.</div>
+     <div class="muted" style="margin-top:10px;">Use apenas em caso de perda do DB. O sync normal depois irá sobrescrever/atualizar com dados reais.</div>
+     <div style="margin-top:14px; display:flex; gap:10px; flex-wrap:wrap;">
+       <button id="btnConfirmRestore" class="btn btn-primary">Confirmar restore</button>
+       <button id="btnCancelRestore" class="btn btn-ghost">Cancelar</button>
+     </div>`,
+  );
+
+  document
+    .getElementById("btnCancelRestore")
+    ?.addEventListener("click", closeModal);
+
+  document
+    .getElementById("btnConfirmRestore")
+    ?.addEventListener("click", async () => {
+      closeModal();
+      if (msg) msg.textContent = "Restaurando backup...";
+
+      const fd = new FormData();
+      fd.append("file", file);
+      const restoreBtn = document.getElementById("btnAdminDbRestore");
+      if (restoreBtn) restoreBtn.disabled = true;
+      const r = await fetch("/admin/db/restore", {
+        method: "POST",
+        credentials: "include",
+        body: fd,
+      });
+      if (restoreBtn) restoreBtn.disabled = false;
+      const text = await r.text();
+      if (!r.ok) {
+        if (msg) msg.textContent = `Erro: ${text || r.status}`;
+        return;
+      }
+
+      if (msg)
+        msg.textContent =
+          "Backup restaurado. Recarregue as abas se necessário.";
+    });
+}
+
+function setDashAdsRoasUI(data, { label }) {
+  const spendCents = Number(data?.metrics?.spendCents || 0);
+  const gmvCents = Number(data?.metrics?.attributedGmvCents || 0);
+  const roas = data?.metrics?.roas;
+
+  setText("dashAdsSpend", formatBRLCents(spendCents));
+  setText("dashAdsGmv", formatBRLCents(gmvCents));
+  setText("dashAdsRoas", roas == null ? "—" : `${Number(roas).toFixed(2)}x`);
+
+  const badge = document.getElementById("dashAdsBadge");
+  if (badge) {
+    badge.className =
+      "badge " + (spendCents > 0 ? "badge--top" : "badge--gray");
+    badge.textContent = spendCents > 0 ? "Ativo" : "Sem gasto";
+  }
+
+  setText("dashAdsMeta", label || "—");
+}
+
+function isoLocalDate(d = new Date()) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+async function loadAdsRoasApprox({ dateFrom, dateTo }) {
+  const qs = new URLSearchParams({
+    dateFrom: String(dateFrom || ""),
+    dateTo: String(dateTo || ""),
+  });
+
+  return apiGet(
+    `/shops/${SHOP_PATH_PLACEHOLDER}/ads/roas-real-aproximado?${qs.toString()}`,
+  );
+}
+
+function setAdsRoasUI(data) {
+  const spendCents = Number(data?.metrics?.spendCents || 0);
+  const gmvCents = Number(data?.metrics?.attributedGmvCents || 0);
+  const roas = data?.metrics?.roas;
+
+  setText("dashAdsSpend", formatBRLCents(spendCents));
+  setText("dashAdsGmv", formatBRLCents(gmvCents));
+  setText("dashAdsRoas", roas == null ? "—" : Number(roas).toFixed(2) + "x");
+
+  // opcional: status visual
+  const badge = document.getElementById("dashAdsBadge");
+  if (badge) {
+    badge.className =
+      "badge " + (spendCents > 0 ? "badge--top" : "badge--gray");
+    badge.textContent = spendCents > 0 ? "Ads ativo" : "Sem gasto";
+  }
+}
+
+async function apiPatch(path, body) {
+  const r = await fetch(path, {
+    method: "PATCH",
+    credentials: "include",
+    headers: body ? { "Content-Type": "application/json" } : undefined,
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const text = await r.text();
+  if (!r.ok) throw new Error(text || `HTTP ${r.status}`);
+  return text ? JSON.parse(text) : null;
+}
+
+function initAuthTab() {
+  const btn = document.getElementById("btn-auth-url");
+  if (!btn) return;
+
+  btn.addEventListener("click", async () => {
+    const preview = document.getElementById("auth-url-preview");
+    if (preview) preview.textContent = "Gerando link...";
+
+    try {
+      const data = await apiGet("/auth/url");
+      const url = data?.auth_url || data?.authUrl || data?.url || null;
+      if (preview)
+        preview.textContent = url ? url : "Não foi possível gerar o link.";
+      if (url) window.location.href = url;
+    } catch (e) {
+      if (preview) preview.textContent = `Erro: ${e.message}`;
+    }
+  });
+}
+
+async function apiDelete(path) {
+  const r = await fetch(path, { method: "DELETE", credentials: "include" });
+  const text = await r.text();
+  if (!r.ok) throw new Error(text || `HTTP ${r.status}`);
+  return text ? JSON.parse(text) : null;
+}
+
+/* ---------------- Boot ---------------- */
+async function boot() {
+  initTabs();
+  initModal();
+  initSyncButtons();
+  initProductsToolbar();
+  initSwitchShopShortcut();
+  initHeaderButtons();
+  initAuthTab();
+  initOrdersAlertsPopover();
+  initSeo();
+  document
+    .getElementById("btnDashReload")
+    ?.addEventListener("click", () => loadDashboard({ silent: false }));
+  document.getElementById("dashLiveToggle")?.addEventListener("change", (e) => {
+    setDashMode(e.target.checked ? "today" : "month");
+    loadDashboard({ silent: false });
+  });
+  setDashMode("month");
+  try {
+    await loadMe();
+    await startShopeeOauthFlowIfRequested();
+    const dashPanel = document.getElementById("tab-dashboard");
+    if (dashPanel && dashPanel.classList.contains("active")) {
+      await loadDashboard();
+    }
+  } catch (e) {
+    setText("auth-status", "Não autenticado. Recarregue a página.");
+  }
+}
+
+boot();

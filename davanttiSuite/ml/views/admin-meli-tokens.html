@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin • Tokens ML</title>
+
+  <link rel="stylesheet" href="/ml/css/dashboard.css?v=2">
+  <link rel="stylesheet" href="/ml/css/admin-usuarios.css?v=2">
+</head>
+
+<body>
+  <!-- Topbar padrão -->
+  <header class="account-bar">
+    <div class="account-bar__left">
+      <a class="brand" href="/ml/dashboard" aria-label="DAVANTTI">
+        <img
+          src="/ml/img/davantti.png"
+          alt="DAVANTTI"
+          class="brand__logo"
+          width="170"
+          height="42"
+          decoding="async"
+          loading="eager"
+        />
+      </a>
+    </div>
+
+    <div class="account-bar__right">
+      <a
+        class="account-bar__switch"
+        href="/ml/select-conta"
+        style="text-decoration:none; display:inline-flex; align-items:center;"
+      >
+        Voltar
+      </a>
+    </div>
+  </header>
+
+  <main class="admin-layout">
+    <aside class="admin-sidebar">
+      <div class="admin-sidebar__brand">
+        <div class="admin-sidebar__logo">Painel Admin</div>
+        <div class="admin-sidebar__sub">Master Only</div>
+      </div>
+
+      <nav class="admin-menu">
+        <a class="admin-menu__item" href="/ml/admin/usuarios">
+          <span class="ico">👤</span>
+          <span>Usuários</span>
+        </a>
+
+        <a class="admin-menu__item" href="/ml/admin/empresas">
+          <span class="ico">🏢</span>
+          <span>Empresas</span>
+        </a>
+
+        <a class="admin-menu__item" href="/ml/admin/vinculos">
+          <span class="ico">🔗</span>
+          <span>Vínculos</span>
+        </a>
+
+        <a class="admin-menu__item" href="/ml/admin/contas-ml">
+          <span class="ico">🟡</span>
+          <span>Contas ML</span>
+        </a>
+
+        <a class="admin-menu__item active" href="/ml/admin/tokens-ml">
+          <span class="ico">🔑</span>
+          <span>Tokens ML</span>
+        </a>
+
+        <a class="admin-menu__item" href="/ml/admin/oauth-states">
+          <span class="ico">🧩</span>
+          <span>OAuth States</span>
+        </a>
+
+        <a class="admin-menu__item" href="/ml/admin/migracoes">
+          <span class="ico">📦</span>
+          <span>Migrações</span>
+        </a>
+
+        <a class="admin-menu__item" href="/ml/admin/backup">
+          <span class="ico">🧰</span>
+          <span>Backup</span>
+        </a>
+      </nav>
+
+      <div class="admin-sidebar__footer">
+        <small>Área restrita</small>
+      </div>
+    </aside>
+
+    <section class="admin-content">
+      <!-- Header da página -->
+      <div class="admin-content__header">
+        <div>
+          <h1 class="admin-title">Tokens ML</h1>
+          <p class="admin-subtitle">
+            Lista de <code>meli_tokens</code>. Não editamos tokens manualmente — apenas ações operacionais.
+          </p>
+        </div>
+
+        <div class="admin-actions">
+          <button id="btn-refresh" class="btn-lite" type="button">Atualizar</button>
+        </div>
+      </div>
+
+      <!-- Toolbar -->
+      <div class="admin-toolbar">
+        <div class="admin-actions" style="flex:1; min-width:260px;">
+          <div class="search-box" style="flex:1;">
+            <input
+              id="search"
+              placeholder="Buscar por empresa, apelido, meli_user_id, status, scope, conta_id…"
+              autocomplete="off"
+            />
+          </div>
+          <button id="btn-clear" class="btn-lite" type="button">Limpar</button>
+        </div>
+
+        <div class="admin-actions">
+          <span id="count-pill" class="pill">—</span>
+
+          <button id="btn-prev" class="btn-lite" type="button" title="Anterior">◀</button>
+          <span class="page-info" id="page-info">—</span>
+          <button id="btn-next" class="btn-lite" type="button" title="Próxima">▶</button>
+        </div>
+      </div>
+
+      <!-- Range info -->
+      <div id="range-info" class="hint">—</div>
+
+      <!-- Tabela -->
+      <div class="card" style="margin-top:10px;">
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th style="width: 110px;">Conta ID</th>
+                <th style="width: 90px;">Empresa</th>
+                <th>Empresa (nome)</th>
+                <th style="width: 140px;">ML User ID</th>
+                <th>Apelido</th>
+                <th style="width: 90px;">Status</th>
+                <th style="width: 160px;">Expira</th>
+                <th style="width: 130px;">Expira em</th>
+                <th style="width: 180px;">Último refresh</th>
+                <th style="width: 220px;">Scope</th>
+                <th style="width: 140px;">Ações</th>
+              </tr>
+            </thead>
+
+            <tbody id="tbody">
+              <tr><td colspan="11" class="table-empty">Carregando…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast" style="display:none;">—</div>
+
+  <script src="/ml/js/ml-base.js"></script>
+  <script src="/ml/js/admin-meli-tokens.js"></script>
+</body>
+</html>

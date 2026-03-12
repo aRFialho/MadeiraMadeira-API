@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Publicidade • Product Ads</title>
+
+  <!-- Reaproveita estilos globais -->
+  <link rel="stylesheet" href="/ml/css/dashboard.css?v=2">
+  <link rel="stylesheet" href="/ml/css/publicidade.css?v=2">
+</head>
+<body>
+  <!-- TOPO FIXO -->
+  <header class="account-bar">
+    <div class="account-bar__left">
+      <a class="brand" href="/ml/dashboard" aria-label="DAVANTTI">
+        <img
+          src="/ml/img/davantti.png"
+          alt="DAVANTTI"
+          class="brand__logo"
+          width="170"
+          height="42"
+          decoding="async"
+          loading="eager"
+        />
+      </a>
+    </div>
+
+    <div class="account-bar__right">
+      <div class="account-bar__current">
+        <span class="lbl">Conta:</span>
+        <span id="account-current" class="val" data-account-label>Carregando...</span>
+      </div>
+
+      <button id="btn-status" class="account-bar__status" title="Ver status do token" type="button" data-account-status>
+        Status
+      </button>
+
+      <button id="account-switch" class="account-bar__switch" title="Trocar de conta" type="button" data-account-switch>
+        Trocar Conta
+      </button>
+    </div>
+  </header>
+
+<!-- NAV TABS -->
+  <nav class="main-nav">
+    <div class="tabs">
+      <button class="nav-tab" onclick="location.href=mlUrl('/dashboard#dashboard')">Dashboard</button>
+      <button class="nav-tab" onclick="location.href=mlUrl('/dashboard#anuncios')">Anúncios</button>
+      <button class="nav-tab" onclick="location.href=mlUrl('/dashboard#produtos')">Alterações Massivas</button>
+      <button class="nav-tab" onclick="location.href=mlUrl('/dashboard#ia')">IA & Analytics</button>
+      <button class="nav-tab  active" onclick="location.href=mlUrl('/dashboard#publicidade')">Publicidade</button>
+      <button class="nav-tab" onclick="location.href=mlUrl('/dashboard#benchmarking')">Benchmarking</button>
+      <button class="nav-tab" onclick="location.href=mlUrl('/dashboard#alertas')">Alertas</button>
+      <button class="nav-tab" onclick="location.href=mlUrl('/dashboard#ml')">ML</button>
+      <button class="nav-tab" onclick="location.href=mlUrl('/full')">FULL</button>
+      <button class="nav-tab" onclick="location.href=mlUrl('/dashboard#admin')">Admin</button>
+    </div>
+  </nav>
+
+  <div class="wrap publicidade-wrap">
+
+    <!-- ✅ NOVA SEÇÃO PREMIUM (substitui cards + gráfico antigos) -->
+    <section class="ads-premium">
+
+      <div class="ads-premium__top">
+        <div>
+          <h2 class="ads-premium__title">📊 Visão consolidada</h2>
+          <p class="ads-premium__subtitle">
+            Gráfico diário (X = dias do mês) com valores no topo de cada ponto.
+          </p>
+        </div>
+        <!-- ✅ IMPORTANTE: id único (evita conflito com o ranking abaixo) -->
+        <div class="ads-premium__hint" id="premiumPeriod">Período: —</div>
+      </div>
+
+      <div class="ads-premium__panel">
+        <!-- filtros -->
+        <form id="ads-filters" class="ads-premium__filters">
+          <div class="ads-field">
+            <label for="dateFrom">Data inicial</label>
+            <input id="dateFrom" type="date" />
+          </div>
+
+          <div class="ads-field">
+            <label for="dateTo">Data final</label>
+            <input id="dateTo" type="date" />
+          </div>
+
+          <div class="ads-field" style="min-width:220px;">
+            <label for="metric">Métrica do gráfico</label>
+            <select id="metric">
+              <option value="total_amount">Faturamento</option>
+              <option value="cost">Investimento</option>
+              <option value="clicks">Cliques</option>
+              <option value="prints">Impressões</option>
+            </select>
+          </div>
+
+          <div class="ads-actions">
+            <button id="btnThisMonth" class="btn-ghost" type="button">📅 Este mês</button>
+            <button id="btnReloadAds" class="btn-premium" type="submit">🔄 Atualizar</button>
+          </div>
+        </form>
+
+        <!-- KPIs -->
+        <div class="ads-premium__kpis">
+          <div class="kpi">
+            <div class="kpi-top">
+              <div class="kpi-label">Faturamento</div>
+              <div class="kpi-pill" id="pillRange">Período</div>
+            </div>
+            <div class="kpi-value" id="kpiRevenue">—</div>
+            <div class="kpi-foot">Total do período</div>
+          </div>
+
+          <div class="kpi">
+            <div class="kpi-top">
+              <div class="kpi-label">Investimento</div>
+              <div class="kpi-pill">Ads</div>
+            </div>
+            <div class="kpi-value" id="kpiCost">—</div>
+            <div class="kpi-foot">Total do período</div>
+          </div>
+
+          <div class="kpi">
+            <div class="kpi-top">
+              <div class="kpi-label">ROAS</div>
+              <div class="kpi-pill">Receita/Invest.</div>
+            </div>
+            <div class="kpi-value" id="kpiRoas">—</div>
+            <div class="kpi-foot">Média do período</div>
+          </div>
+
+          <div class="kpi">
+            <div class="kpi-top">
+              <div class="kpi-label">ACOS</div>
+              <div class="kpi-pill">Invest./Receita</div>
+            </div>
+            <div class="kpi-value" id="kpiAcos">—</div>
+            <div class="kpi-foot">Média do período</div>
+          </div>
+
+          <div class="kpi">
+            <div class="kpi-top">
+              <div class="kpi-label">Cliques</div>
+              <div class="kpi-pill">Total</div>
+            </div>
+            <div class="kpi-value" id="kpiClicks">—</div>
+            <div class="kpi-foot">Somatório</div>
+          </div>
+
+          <div class="kpi">
+            <div class="kpi-top">
+              <div class="kpi-label">Impressões</div>
+              <div class="kpi-pill">Total</div>
+            </div>
+            <div class="kpi-value" id="kpiPrints">—</div>
+            <div class="kpi-foot">Somatório</div>
+          </div>
+
+          <div class="kpi">
+            <div class="kpi-top">
+              <div class="kpi-label">CTR</div>
+              <div class="kpi-pill">Cliques/Impr.</div>
+            </div>
+            <div class="kpi-value" id="kpiCtr">—</div>
+            <div class="kpi-foot">Média do período</div>
+          </div>
+
+          <div class="kpi">
+            <div class="kpi-top">
+              <div class="kpi-label">CPC</div>
+              <div class="kpi-pill">Invest./Clique</div>
+            </div>
+            <div class="kpi-value" id="kpiCpc">—</div>
+            <div class="kpi-foot">Média do período</div>
+          </div>
+        </div>
+
+        <!-- gráfico + tabela diária -->
+        <div class="ads-premium__split">
+          <div class="card">
+            <div class="card-hd">
+              <div>
+                <h3 class="card-title">📈 Série diária</h3>
+                <div class="card-sub" id="chartHint">X = dias do mês • Y = valores • labels em cada dia</div>
+              </div>
+              <div class="card-sub">Fonte: /api/publicidade/product-ads/metrics/daily</div>
+            </div>
+            <div class="card-bd">
+              <div class="chart-wrap">
+                <!-- mantém o id usado pelo JS -->
+                <canvas id="adsMetricsChart"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-hd">
+              <div>
+                <h3 class="card-title">📋 Detalhamento diário</h3>
+                <div class="card-sub">Resumo por dia (período selecionado)</div>
+              </div>
+              <div class="card-sub" id="tableCount">—</div>
+            </div>
+            <div class="card-bd">
+              <div class="table-wrap">
+                <table class="dash-table">
+                  <thead>
+                    <tr>
+                      <th>Dia</th>
+                      <th class="num">Faturamento</th>
+                      <th class="num">Investimento</th>
+                      <th class="num">Cliques</th>
+                      <th class="num">Impressões</th>
+                      <th class="num">CTR</th>
+                      <th class="num">CPC</th>
+                      <th class="num">ROAS</th>
+                      <th class="num">ACOS</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tbodyDaily">
+                    <tr><td colspan="9" class="muted">Carregando…</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- RANKING -->
+    <section class="ads-ranking">
+      <div class="card">
+        <header class="card-header ads-ranking-header">
+          <div>
+            <h3>Ranking de campanhas</h3>
+            <p id="rankingPeriod" class="muted">Período: —</p>
+          </div>
+        </header>
+
+        <div class="table-wrapper table-wrapper--wide table-shell">
+          <table class="table table-ranking" id="tblCampaigns" data-table="campaigns">
+            <thead>
+              <tr>
+                <th class="sticky-col">Nome da campanha</th>
+                <th>Status</th>
+                <th>Estratégia</th>
+                <th class="num">ACOS objetivo</th>
+                <th class="num">ACOS</th>
+
+                <!-- removidas: TACOS, CPI, LISB, LISAR, Participação -->
+
+                <th class="num">Vendas publicidade</th>
+                <th class="num">Impressões</th>
+                <th class="num">Cliques</th>
+                <th class="num">Investimento</th>
+                <th class="num">CPC</th>
+                <th class="num">CTR</th>
+                <th class="num">Receita</th>
+                <th class="num">Retornos</th>
+              </tr>
+            </thead>
+            <tbody id="tbodyCampaigns">
+              <tr>
+                <td colspan="13" class="muted">
+                  Nenhuma campanha carregada. Clique em <strong>Atualizar métricas</strong>.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- DETALHE -->
+    <section class="ads-detail">
+      <div class="table-wrapper table-wrapper--wide table-shell ads-items-wrapper">
+        <!-- Toolbar (botão Exportar CSV no canto superior direito) -->
+        <div class="ads-items-toolbar">
+          <div class="ads-items-toolbar__left">
+            <strong id="itemsTitle">Anúncios da campanha</strong>
+            <span id="itemsSubtitle" class="muted">Selecione uma campanha no ranking acima.</span>
+          </div>
+          <div class="ads-items-toolbar__right">
+            <button id="btnExportCsv" type="button" class="btn" disabled>
+              Exportar CSV
+            </button>
+          </div>
+        </div>
+
+        <table class="table ads-items-table" id="tblItems">
+          <thead>
+            <tr>
+              <th class="sticky-col">Nome da campanha</th>
+              <th>Qualidade da publicação</th>
+
+              <!-- ordem solicitada -->
+              <th class="num">ACOS</th>
+              <th class="num">TACOS</th>
+              <th class="num">ROAS</th>
+
+              <th class="num">Impressões</th>
+              <th class="num">Cliques</th>
+              <th class="num">CTR</th>
+              <th class="num">CPC</th>
+
+              <th class="num">Conversão publicitária</th>
+              <th class="num">Vendas publicidade</th>
+              <th class="num">Vendas diretas</th>
+              <th class="num">Vendas assistidas</th>
+
+              <th class="num">Aporte de publicidade</th>
+              <th class="num">Renda por publicidade</th>
+              <th class="num">Investimento</th>
+            </tr>
+          </thead>
+
+          <tbody id="tbodyItems">
+            <tr>
+              <td colspan="16" class="muted">Nenhuma campanha selecionada.</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="ads-pagination" id="adsPagination"></div>
+      </div>
+    </section>
+  </div>
+  
+  <script src="/ml/js/ml-base.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="/ml/js/account-bar.js" defer></script>
+  <script src="/ml/js/publicidade.js" defer></script>
+</body>
+</html>

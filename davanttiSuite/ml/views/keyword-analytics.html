@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <link rel="stylesheet" href="/ml/css/dashboard.css">
+  <link href="/ml/css/keyword-analytics.css" rel="stylesheet"/>
+  <title>Keyword Analytics • Mercado Livre</title>
+</head>
+<body>
+
+  <header class="account-bar">
+    <div class="account-bar__left">
+    <a class="brand" href="/ml/dashboard" aria-label="DAVANTTI">
+      <img
+        src="/ml/img/davantti.png"
+        alt="DAVANTTI"
+        class="brand__logo"
+        width="170"
+        height="42"
+        decoding="async"
+        loading="eager"
+      />
+    </a>
+  </div>
+    <div class="account-bar__right">
+      <div class="account-bar__current">
+        <span class="lbl">Conta:</span>
+        <span id="account-current" class="val">Carregando...</span>
+      </div>
+      <button id="btn-status" class="account-bar__status" title="Ver status do token">Status</button>
+      <button id="account-switch" class="account-bar__switch" title="Trocar de conta">Trocar Conta</button>
+    </div>
+  </header>
+
+<!-- NAV TABS -->
+  <nav class="main-nav">
+    <div class="tabs">
+      <button class="nav-tab" onclick="location.href=mlUrl('/dashboard#dashboard')">Dashboard</button>
+      <button class="nav-tab" onclick="location.href=mlUrl('/dashboard#anuncios')">Anúncios</button>
+      <button class="nav-tab" onclick="location.href=mlUrl('/dashboard#produtos')">Alterações Massivas</button>
+      <button class="nav-tab active" onclick="location.href=mlUrl('/dashboard#ia')">IA & Analytics</button>
+      <button class="nav-tab" onclick="location.href=mlUrl('/dashboard#publicidade')">Publicidade</button>
+      <button class="nav-tab" onclick="location.href=mlUrl('/dashboard#benchmarking')">Benchmarking</button>
+      <button class="nav-tab" onclick="location.href=mlUrl('/dashboard#alertas')">Alertas</button>
+      <button class="nav-tab" onclick="location.href=mlUrl('/dashboard#ml')">ML</button>
+      <button class="nav-tab" onclick="location.href=mlUrl('/full')">FULL</button>
+      <button class="nav-tab" onclick="location.href=mlUrl('/dashboard#admin')">Admin</button>
+    </div>
+  </nav>
+    
+
+  <div id="modal-status" class="modal">
+    <div class="modal-content">
+      <div class="modal-header alt">
+        <h3>🟢 Status da Integração</h3>
+        <span class="close" onclick="fecharModalStatus()">&times;</span>
+      </div>
+      <div class="modal-body">
+        <div class="status-grid">
+          <div class="stat-mini"><h4 id="status-usuario">—</h4><p>Usuário</p></div>
+          <div class="stat-mini"><h4 id="status-token">—</h4><p>Token (preview)</p></div>
+          <div class="stat-mini"><h4 id="status-msg">—</h4><p>Mensagem</p></div>
+        </div>
+        <div class="modal-controls">
+          <button class="btn-small btn-primary" onclick="verificarToken(true)">🔍 Verificar</button>
+          <button class="btn-small btn-success" onclick="renovarToken(true)">🔄 Renovar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+    
+<main class="page-wrap">
+  <section class="tab-page active">
+    <div class="ka-shell">
+  <div class="ka-hero">
+    <div class="ka-header">
+      <div class="ka-title">
+        <div class="icon">🔎</div>
+        <div>
+          <h1>Keyword Analytics</h1>
+          <p>Ubersuggest-like + ML Trends • Otimize títulos com dados reais do Mercado Livre.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="ka-searchbar">
+      <div class="sb-field">
+        <label>Item (MLB...)</label>
+        <input id="kaItemId" class="sb-input sb-lg" placeholder="MLB1234567890" type="text"/>
+      </div>
+
+      <div class="sb-field" style="flex:1; min-width:220px;">
+        <label>Seed keyword (opcional)</label>
+        <input id="kaSeed" class="sb-input" placeholder="ex.: poltrona do papai" type="text"/>
+      </div>
+
+      <div class="sb-field">
+        <label>Site</label>
+        <select id="kaSite" class="sb-input">
+          <option value="MLB">MLB</option>
+        </select>
+      </div>
+
+      <div class="sb-field">
+        <label>Qtd</label>
+        <input id="kaLimit" class="sb-input" type="number" min="1" max="200" value="25"/>
+      </div>
+
+      <div class="sb-field">
+        <label>Páginas</label>
+        <input id="kaPages" class="sb-input" type="number" min="1" max="10" value="5"/>
+      </div>
+
+      <div class="sb-actions">
+        <button class="btn btn-primary" id="btnBuscarPalavras">Analisar</button>
+        <button class="btn btn-secondary" id="btnLimpar">Limpar</button>
+        <span id="kaAccountChip" class="ka-chip">Conta: —</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="ka-grid">
+    <aside class="ka-panel ka-left">
+      <div class="ka-card-title">Item</div>
+      <div class="ka-item" id="kaItemCard">
+        <div class="row"><span class="label">Status</span><span class="value">—</span></div>
+        <div class="row" style="margin-top:8px;"><span class="label">Título</span><span class="value">—</span></div>
+        <div class="row" style="margin-top:8px;"><span class="label">Categoria</span><span class="value">—</span></div>
+      </div>
+
+      <div class="ka-steps" id="kaSteps" aria-label="Etapas">
+        <div class="ka-step" data-step="item"><span class="dot"></span>Buscando item…</div>
+        <div class="ka-step" data-step="serp"><span class="dot"></span>Minerando SERP…</div>
+        <div class="ka-step" data-step="score"><span class="dot"></span>Calculando score…</div>
+      </div>
+
+      <div id="kaError" class="ka-alert" style="display:none;">
+        <div id="kaErrorMsg">Erro</div>
+        <div class="cta">
+          <a id="kaCtaPrimary" href="/ml/select-conta" style="display:none;">Reautenticar</a>
+          <a id="kaCtaSecondary" href="/ml/select-conta" style="display:none;">Trocar conta</a>
+        </div>
+      </div>
+    </aside>
+
+    <main class="ka-panel ka-right">
+      <div class="ka-tabs" id="kaTabs">
+        <button class="ka-tab active" data-tab="overview">Visão geral</button>
+        <button class="ka-tab" data-tab="suggestions">Sugestões</button>
+        <button class="ka-tab" data-tab="serp">SERP Rank</button>
+        <button class="ka-tab" data-tab="trend">Tendência</button>
+      </div>
+
+      <section id="tab-overview">
+        <div class="ka-metrics" id="kaMetrics">
+          <div class="metric"><div class="k">Rank médio</div><div class="v" id="mRank">—</div><div class="s" id="mRankS">—</div></div>
+          <div class="metric"><div class="k">Competição média</div><div class="v" id="mComp">—</div><div class="s" id="mCompS">—</div></div>
+          <div class="metric"><div class="k">Tendência média</div><div class="v" id="mTrend">—</div><div class="s" id="mTrendS">—</div></div>
+          <div class="metric"><div class="k">Top oportunidade</div><div class="v" id="mBest">—</div><div class="s" id="mBestS">—</div></div>
+        </div>
+
+        <div class="ka-table" id="kaTableWrap" style="margin-top:12px;">
+          <table>
+            <thead>
+              <tr>
+                <th style="width:34%;">Keyword</th>
+                <th style="width:10%;">Rank</th>
+                <th style="width:18%;">Competição</th>
+                <th style="width:10%;">Trend</th>
+                <th style="width:10%;">Relev.</th>
+                <th style="width:10%;">Score</th>
+                <th style="width:8%;">Ações</th>
+              </tr>
+            </thead>
+            <tbody id="kaTableBody">
+              <tr><td colspan="7" style="color:var(--ka-muted); padding:18px;">Digite um MLB e clique em <b>Analisar</b> para começar.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="tab-suggestions" style="display:none;">
+        <div class="ka-table">
+          <table>
+            <thead><tr>
+              <th style="width:34%;">Keyword</th><th>Rank</th><th>Competição</th><th>Trend</th><th>Relev.</th><th>Score</th><th>Ações</th>
+            </tr></thead>
+            <tbody id="kaTableBody2"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="tab-serp" style="display:none;">
+        <div style="padding:14px; color:var(--ka-muted);">Em breve: distribuição por faixas e top ranks (depende de dados de rank).</div>
+      </section>
+
+      <section id="tab-trend" style="display:none;">
+        <div style="padding:14px; color:var(--ka-muted);">Em breve: cards de tendência (depende de trend score por keyword).</div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<div id="kaDrawerOverlay" class="ka-drawer-overlay"></div>
+<aside id="kaDrawer" class="ka-drawer" aria-hidden="true">
+  <header>
+    <div class="t" id="kaDrawerTitle">Sugestões</div>
+    <button class="x" id="kaDrawerClose" aria-label="Fechar">✕</button>
+  </header>
+  <div class="body" id="kaDrawerBody"></div>
+</aside>
+
+
+
+<!-- Base helpers + page logic -->
+<script src="/ml/js/ml-base.js"></script>
+<script src="/ml/js/account-bar.js" defer></script>
+<script src="/ml/js/keyword-analytics.js"></script>
+
+<!-- Status modal logic (reused pattern from other ML pages) -->
+<script>
+  (function(){
+    const btnStatus = document.getElementById('btn-status');
+    const btnTrocar = document.getElementById('account-switch');
+    if (btnTrocar) btnTrocar.addEventListener('click', () => location.href = '/ml/select-conta');
+    if (btnStatus) btnStatus.addEventListener('click', () => abrirModalStatus());
+  })();
+
+  function abrirModalStatus(){
+    const m = document.getElementById('modal-status');
+    if (!m) return;
+    m.style.display = 'block';
+    verificarToken(true);
+  }
+
+  function fecharModalStatus(){
+    const m = document.getElementById('modal-status');
+    if (!m) return;
+    m.style.display = 'none';
+  }
+
+  async function verificarToken(updateModal=false) {
+    try {
+      const response = await fetch('/ml/api/tokens/verify-token');
+      const data = await response.json();
+      if (data.success) {
+        if (updateModal) {
+          document.getElementById('status-usuario').textContent = data.nickname || '—';
+          document.getElementById('status-token').textContent = (data.access_token || '').substring(0, 20) + '...';
+          document.getElementById('status-msg').textContent = data.message || 'OK';
+        } else {
+          alert('✅ ' + (data.message || 'OK'));
+        }
+      } else {
+        if (updateModal) document.getElementById('status-msg').textContent = data.error || 'Falha ao verificar';
+        else alert('❌ ' + (data.error || 'Falha ao verificar'));
+      }
+    } catch (error) {
+      if (updateModal) document.getElementById('status-msg').textContent = 'Erro: ' + error.message;
+      else alert('❌ Erro: ' + error.message);
+    }
+  }
+
+  async function renovarToken(updateModal=false) {
+    try {
+      const response = await fetch('/ml/api/tokens/renovar-token-automatico', { method: 'POST' });
+      const data = await response.json();
+      if (data.success) {
+        if (updateModal) {
+          document.getElementById('status-usuario').textContent = data.nickname || '—';
+          document.getElementById('status-token').textContent = (data.access_token || '').substring(0, 20) + '...';
+          document.getElementById('status-msg').textContent = data.message || 'Token renovado';
+        } else {
+          alert('✅ ' + (data.message || 'Token renovado'));
+        }
+      } else {
+        if (updateModal) document.getElementById('status-msg').textContent = data.error || 'Falha ao renovar';
+        else alert('❌ ' + (data.error || 'Falha ao renovar'));
+      }
+    } catch (error) {
+      if (updateModal) document.getElementById('status-msg').textContent = 'Erro: ' + error.message;
+      else alert('❌ Erro: ' + error.message);
+    }
+  }
+
+  window.addEventListener('click', function(event){
+    const m = document.getElementById('modal-status');
+    if (event.target === m) fecharModalStatus();
+  });
+
+  (async function(){
+    try {
+      const r = await fetch('/ml/api/keyword-analytics/debug-context');
+      if (!r.ok) return;
+      const j = await r.json();
+      if (j?.success && j?.context) {
+        const c = j.context;
+        const label = c.accountLabel || c.nickname || '—';
+        const top = document.getElementById('account-current');
+        if (top) top.textContent = label;
+      }
+    } catch {}
+  })();
+</script>
+
+</body>
+</html>

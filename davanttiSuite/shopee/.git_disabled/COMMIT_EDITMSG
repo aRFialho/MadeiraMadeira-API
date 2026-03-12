@@ -1,0 +1,16 @@
+
+# Please enter the commit message for your changes. Lines starting
+# with '#' will be ignored, and an empty message aborts the commit.
+#
+# On branch main
+# Changes to be committed:
+#	new file:   index.js
+#	modified:   public/app.js
+#	modified:   public/login.html
+#	modified:   public/login.js
+#	modified:   src/routes/authLocal.routes.js
+#	modified:   src/routes/index.js
+#	new file:   src/routes/public.routes.js
+#	modified:   src/routes/session.routes.js
+#	modified:   src/server.js
+#

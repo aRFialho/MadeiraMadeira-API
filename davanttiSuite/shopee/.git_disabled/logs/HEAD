@@ -1,0 +1,165 @@
+0000000000000000000000000000000000000000 74377470e256faa98b0bf878278c8750c2baa6a1 Alan Raphael <alanraphael7@gmail.com> 1766487935 -0300	commit (initial): first commit
+74377470e256faa98b0bf878278c8750c2baa6a1 959af0c1760c60f147f4065a760b443dd50a52b0 Alan Raphael <alanraphael7@gmail.com> 1766489478 -0300	commit: restart
+959af0c1760c60f147f4065a760b443dd50a52b0 298e2c91d486c7f9bfaca391631a2c03bf991232 Alan Raphael <alanraphael7@gmail.com> 1766491791 -0300	commit: commit ok
+298e2c91d486c7f9bfaca391631a2c03bf991232 ab82939b5aeeae58b0a3224bc8302fe05ddbd8a2 Alan Raphael <alanraphael7@gmail.com> 1766494443 -0300	commit: fix env
+ab82939b5aeeae58b0a3224bc8302fe05ddbd8a2 9444831cf0fec1104600a75cb63bf8868626f3b7 Alan Raphael <alanraphael7@gmail.com> 1766496657 -0300	commit: fix deploy
+9444831cf0fec1104600a75cb63bf8868626f3b7 d9f765ad4a0021fb87838c8b019a13fe68a3d108 Alan Raphael <alanraphael7@gmail.com> 1766498012 -0300	commit: fix server
+d9f765ad4a0021fb87838c8b019a13fe68a3d108 736c1434397780a39ab781f4c85663a412a15648 Alan Raphael <alanraphael7@gmail.com> 1766498727 -0300	commit: fix error handler
+736c1434397780a39ab781f4c85663a412a15648 4751fae9657ba57a9fcd4690b1c696fd4fa3d129 Alan Raphael <alanraphael7@gmail.com> 1766499251 -0300	commit: fix errorhandler
+4751fae9657ba57a9fcd4690b1c696fd4fa3d129 41e47092fe743de9d9985d4c411db12f81bae4cc Alan Raphael <alanraphael7@gmail.com> 1766499917 -0300	commit: fix token
+41e47092fe743de9d9985d4c411db12f81bae4cc 1957e529593f80013cf3e64aef6563a0a68a7ac5 Alan Raphael <alanraphael7@gmail.com> 1766501591 -0300	commit: att .gitignore
+1957e529593f80013cf3e64aef6563a0a68a7ac5 6e3a2c8a8b8e1e32c42694428e0648e66c27b336 Alan Raphael <alanraphael7@gmail.com> 1766509480 -0300	commit: debug routes
+6e3a2c8a8b8e1e32c42694428e0648e66c27b336 f58207168e6cc177965cf4bf40a27c4b3d83b86c Alan Raphael <alanraphael7@gmail.com> 1766509808 -0300	commit: fix order
+f58207168e6cc177965cf4bf40a27c4b3d83b86c b0f51603379da9a204ac8dae49e97c551c3a10a4 Alan Raphael <alanraphael7@gmail.com> 1766510090 -0300	commit: fix module
+b0f51603379da9a204ac8dae49e97c551c3a10a4 6129c415e3142588455795e62ef9dcfadae1a3f3 Alan Raphael <alanraphael7@gmail.com> 1766510462 -0300	commit: fix modules2
+6129c415e3142588455795e62ef9dcfadae1a3f3 9d6c84e8674d920cef2ffb9b1fadffd32c44223d Alan Raphael <alanraphael7@gmail.com> 1766511258 -0300	commit: fix debusg
+9d6c84e8674d920cef2ffb9b1fadffd32c44223d fbae988518a8a19a3663c819140e46ef0b36de9a Alan Raphael <alanraphael7@gmail.com> 1766511864 -0300	commit: fix deb
+fbae988518a8a19a3663c819140e46ef0b36de9a 0c0283186cd77ef588a72f6bb02ab29b2c13a902 Alan Raphael <alanraphael7@gmail.com> 1766512269 -0300	commit: fix logs
+0c0283186cd77ef588a72f6bb02ab29b2c13a902 4fd7fbe6106bac7038b19b174709391c9455a5b4 Alan Raphael <alanraphael7@gmail.com> 1766512683 -0300	commit: chato
+4fd7fbe6106bac7038b19b174709391c9455a5b4 67c27342feaddf98b491e05f377aaf4ccc53c435 Alan Raphael <alanraphael7@gmail.com> 1766513260 -0300	commit: vai toma no cu
+67c27342feaddf98b491e05f377aaf4ccc53c435 7317b052a40af1bbf4b0538f8686816548fb9d4c Alan Raphael <alanraphael7@gmail.com> 1766513496 -0300	commit: cu
+7317b052a40af1bbf4b0538f8686816548fb9d4c 7f7c52a716af9a131628392f1693e69e70b19001 Alan Raphael <alanraphael7@gmail.com> 1766513657 -0300	commit: cuzinho
+7f7c52a716af9a131628392f1693e69e70b19001 4c4aec93aed046a758c8df340a418b85c3fc2792 Alan Raphael <alanraphael7@gmail.com> 1766517033 -0300	commit: new intems
+4c4aec93aed046a758c8df340a418b85c3fc2792 270003314a87b29bc63fdb2ea0904e574532c334 Alan Raphael <alanraphael7@gmail.com> 1766517251 -0300	commit: new intems
+270003314a87b29bc63fdb2ea0904e574532c334 17cba801601e24f649aa4eb4b942d3214455ca9b Alan Raphael <alanraphael7@gmail.com> 1766519356 -0300	commit: interface
+17cba801601e24f649aa4eb4b942d3214455ca9b dbde99206c43b71492eda18788150e06db623456 Alan Raphael <alanraphael7@gmail.com> 1766519937 -0300	commit: fix name
+dbde99206c43b71492eda18788150e06db623456 6f0eed41c6d46509789165f03bea966243b0cb98 Alan Raphael <alanraphael7@gmail.com> 1766522805 -0300	commit: fix all
+6f0eed41c6d46509789165f03bea966243b0cb98 dda6f991f4e68253e708a8925e14498dcbf64893 Alan Raphael <alanraphael7@gmail.com> 1766573213 -0300	commit: 24.12
+dda6f991f4e68253e708a8925e14498dcbf64893 b7b271eee1e04ec8975d5edad137ff76659f20f4 Alan Raphael <alanraphael7@gmail.com> 1766573678 -0300	commit: 24.1
+b7b271eee1e04ec8975d5edad137ff76659f20f4 8da73f83230fc9939dadecbb42cb6a772f3e5537 Alan Raphael <alanraphael7@gmail.com> 1766574048 -0300	commit: 241
+8da73f83230fc9939dadecbb42cb6a772f3e5537 dc5d39f91e7b8db3315d496461e426f2b146ca1d Alan Raphael <alanraphael7@gmail.com> 1766575061 -0300	commit: 24
+dc5d39f91e7b8db3315d496461e426f2b146ca1d 25a94405f73c19cceaf74efc3099c53ee3f6d934 Alan Raphael <alanraphael7@gmail.com> 1766575647 -0300	commit: 2
+25a94405f73c19cceaf74efc3099c53ee3f6d934 737321b972439a476973b3e2c596e91672fb4a80 Alan Raphael <alanraphael7@gmail.com> 1766576018 -0300	commit: fix id
+737321b972439a476973b3e2c596e91672fb4a80 9f764dc5d0460aa99a43952f2de59eaecf7664c9 Alan Raphael <alanraphael7@gmail.com> 1766586194 -0300	commit: 125
+9f764dc5d0460aa99a43952f2de59eaecf7664c9 fdc43e20bbfe2d8df97052975734cfa13eea9917 Alan Raphael <alanraphael7@gmail.com> 1766586757 -0300	commit: json
+fdc43e20bbfe2d8df97052975734cfa13eea9917 0ea04cd4ac7549b5ff3699afd67927e3550c8cd6 Alan Raphael <alanraphael7@gmail.com> 1766587456 -0300	commit: jsn
+0ea04cd4ac7549b5ff3699afd67927e3550c8cd6 f748a9bc8434d60142f48111acc59d0a52f3473a Alan Raphael <alanraphael7@gmail.com> 1766593487 -0300	commit: fix css
+f748a9bc8434d60142f48111acc59d0a52f3473a a16209e24ad29670f52de023fdf850f80ab85eeb Alan Raphael <alanraphael7@gmail.com> 1766595228 -0300	commit: fix
+a16209e24ad29670f52de023fdf850f80ab85eeb c67807fe245332ee03a64f5b9b65069a2ba63bd7 Alan Raphael <alanraphael7@gmail.com> 1767006256 -0300	commit: 29,12
+c67807fe245332ee03a64f5b9b65069a2ba63bd7 026301c6755187223fe5067e916eed9301603bd4 Alan Raphael <alanraphael7@gmail.com> 1767006654 -0300	commit: 29
+026301c6755187223fe5067e916eed9301603bd4 5e453488a190bcd42c181660be7a2ef076e73681 Alan Raphael <alanraphael7@gmail.com> 1767007117 -0300	commit: fix opendetail
+5e453488a190bcd42c181660be7a2ef076e73681 c6c211c4c2af74175ca298b970c379606aa17d2c Alan Raphael <alanraphael7@gmail.com> 1767008239 -0300	commit: fix price
+c6c211c4c2af74175ca298b970c379606aa17d2c 7c64c2affa18492bd04cc7e3bf15363520bb5779 Alan Raphael <alanraphael7@gmail.com> 1767009272 -0300	commit: fix detail
+7c64c2affa18492bd04cc7e3bf15363520bb5779 1a2d08cecbf9f08e31fe386f12f6303fe8d75033 Alan Raphael <alanraphael7@gmail.com> 1767010933 -0300	commit: fix schema
+1a2d08cecbf9f08e31fe386f12f6303fe8d75033 a0af6348dd5296e509c6f0ab99b9f58b70b5b4cb Alan Raphael <alanraphael7@gmail.com> 1767012138 -0300	commit: fix css
+a0af6348dd5296e509c6f0ab99b9f58b70b5b4cb 200f0220d2117031877c3994d29ac1e954d690b3 Alan Raphael <alanraphael7@gmail.com> 1767013086 -0300	commit: fix css2
+200f0220d2117031877c3994d29ac1e954d690b3 6dc020ac8a965b4a59b45254960930766ca7eb36 Alan Raphael <alanraphael7@gmail.com> 1767014635 -0300	commit: style ML
+6dc020ac8a965b4a59b45254960930766ca7eb36 5a07f695b877fcad029c07494d9ab50ab7e6417b Alan Raphael <alanraphael7@gmail.com> 1767017064 -0300	commit: login
+5a07f695b877fcad029c07494d9ab50ab7e6417b 9b1cfe2da5c5f4e5c0d33cfb9d5dcb68599b8491 Alan Raphael <alanraphael7@gmail.com> 1767019542 -0300	commit: logn 1
+9b1cfe2da5c5f4e5c0d33cfb9d5dcb68599b8491 742cfb245a47d08149b98e073de2bd71bfcc0b76 Alan Raphael <alanraphael7@gmail.com> 1767019787 -0300	commit: login3
+742cfb245a47d08149b98e073de2bd71bfcc0b76 c2e208de3fbc641fdc2c6430858c81de896c5652 Alan Raphael <alanraphael7@gmail.com> 1767019835 -0300	commit: login4
+c2e208de3fbc641fdc2c6430858c81de896c5652 e5f7da7f9f10924d6110cc619206d8ff0cb83521 Alan Raphael <alanraphael7@gmail.com> 1767024637 -0300	commit: error css fix
+e5f7da7f9f10924d6110cc619206d8ff0cb83521 6bded6771efefda5977e9548e177e0ad9272cdcc Alan Raphael <alanraphael7@gmail.com> 1767040443 -0300	commit: fix all
+6bded6771efefda5977e9548e177e0ad9272cdcc 94f87e5f1967c9760b55216ac3b1167e3ddc00c9 Alan Raphael <alanraphael7@gmail.com> 1767097194 -0300	commit: fix app.js
+94f87e5f1967c9760b55216ac3b1167e3ddc00c9 60310c8381a3fd27cc41d75997768db456c39ffe Alan Raphael <alanraphael7@gmail.com> 1767099738 -0300	commit: function admin
+60310c8381a3fd27cc41d75997768db456c39ffe 015a2a11b65a58abf0c98ce4782e44eee2fa3802 Alan Raphael <alanraphael7@gmail.com> 1767100998 -0300	commit: fix user edit
+015a2a11b65a58abf0c98ce4782e44eee2fa3802 7125242f9b2bcb3d14f4639c0bf33f54ef5e48cd Alan Raphael <alanraphael7@gmail.com> 1767119578 -0300	commit: ads
+7125242f9b2bcb3d14f4639c0bf33f54ef5e48cd 0018611058ba9748f6a1a9c56a0a16076b30325d Alan Raphael <alanraphael7@gmail.com> 1767122348 -0300	commit: fix ads2
+0018611058ba9748f6a1a9c56a0a16076b30325d 88a89f6301545e10f043f1846d745ddc9275f420 Alan Raphael <alanraphael7@gmail.com> 1767124461 -0300	commit: test ads
+88a89f6301545e10f043f1846d745ddc9275f420 e8f973e914136a9dfc05b065d2771d61cb6ecd33 Alan Raphael <alanraphael7@gmail.com> 1767125435 -0300	commit: fix routes ads
+e8f973e914136a9dfc05b065d2771d61cb6ecd33 b3b6d1b6ca9f3eb609f3ce7d6580155838c06196 Alan Raphael <alanraphael7@gmail.com> 1767125886 -0300	commit: fix routes ads3
+b3b6d1b6ca9f3eb609f3ce7d6580155838c06196 f4a552a84c192aa1749eecdc5efed67530857141 Alan Raphael <alanraphael7@gmail.com> 1767126025 -0300	commit: fix name ads
+f4a552a84c192aa1749eecdc5efed67530857141 cbb0275b904e5ada57cc831303e43e71cf306646 Alan Raphael <alanraphael7@gmail.com> 1767126816 -0300	commit: fix route
+cbb0275b904e5ada57cc831303e43e71cf306646 06bffbf42e4527e31f5de8eef10387ccbe99741e Alan Raphael <alanraphael7@gmail.com> 1767127397 -0300	commit: fix25
+06bffbf42e4527e31f5de8eef10387ccbe99741e 59419d3d23ea61883a0bc432833fab99baf7de68 Alan Raphael <alanraphael7@gmail.com> 1767127570 -0300	commit: fix catch
+59419d3d23ea61883a0bc432833fab99baf7de68 46b7ffae95e022c38f5e2dac18b2192d248f1b53 Alan Raphael <alanraphael7@gmail.com> 1767127911 -0300	commit: fix a
+46b7ffae95e022c38f5e2dac18b2192d248f1b53 fa9dfc311add7d34d215e5bd937979af77cabc37 Alan Raphael <alanraphael7@gmail.com> 1767704747 -0300	commit: 06.01
+fa9dfc311add7d34d215e5bd937979af77cabc37 7baa85f8f2d266c2459f00ad6bf39ac45322c2c9 Alan Raphael <alanraphael7@gmail.com> 1767704976 -0300	commit: 06
+7baa85f8f2d266c2459f00ad6bf39ac45322c2c9 38de060463c5f035d5e2e0ea0d19a7c12320d337 Alan Raphael <alanraphael7@gmail.com> 1767717499 -0300	commit: fix ads
+38de060463c5f035d5e2e0ea0d19a7c12320d337 00ba86cc6af1b08267c6a67fc043c833a2fc7677 Alan Raphael <alanraphael7@gmail.com> 1767718272 -0300	commit: fix prisma
+00ba86cc6af1b08267c6a67fc043c833a2fc7677 9e398c49476f46a7cb90dd72babb069ddb317663 Alan Raphael <alanraphael7@gmail.com> 1767719925 -0300	commit: fix campaigns
+9e398c49476f46a7cb90dd72babb069ddb317663 2d0c3799f8a9f20e7a6086623439629cea495acc Alan Raphael <alanraphael7@gmail.com> 1767728415 -0300	commit: fix ads2
+2d0c3799f8a9f20e7a6086623439629cea495acc 8013f397ecb097683b42aa6aa9fae20c7b2a0fc2 Alan Raphael <alanraphael7@gmail.com> 1767728427 -0300	commit: fix ads3
+8013f397ecb097683b42aa6aa9fae20c7b2a0fc2 27788e04ab2a1582e5ff3df92178025983eacdec Alan Raphael <alanraphael7@gmail.com> 1767812159 -0300	commit: fix ads css
+27788e04ab2a1582e5ff3df92178025983eacdec c1378598cde62ea57724091e9c5b581d17a289aa Alan Raphael <alanraphael7@gmail.com> 1767812166 -0300	commit: fix ads cs2
+c1378598cde62ea57724091e9c5b581d17a289aa 16a3f2bdec5e651ae38c8df2fb5f5ddedde39e1d Alan Raphael <alanraphael7@gmail.com> 1767815671 -0300	commit: fix error ads
+16a3f2bdec5e651ae38c8df2fb5f5ddedde39e1d 8abb419a4abf817c14a312dda5adf2878f43600d Alan Raphael <alanraphael7@gmail.com> 1767815692 -0300	commit: fix error ads2
+8abb419a4abf817c14a312dda5adf2878f43600d 6fa4cf2c9c0a6874a64e8d8dc30e9ae56a033f0c Alan Raphael <alanraphael7@gmail.com> 1767816592 -0300	commit: fix error ads3
+6fa4cf2c9c0a6874a64e8d8dc30e9ae56a033f0c 3b723287980a5cabdebaef4afd0fffc7a7af6120 Alan Raphael <alanraphael7@gmail.com> 1767900873 -0300	commit: fix ads em and.
+3b723287980a5cabdebaef4afd0fffc7a7af6120 379aab1fa560c6a7258edd89c390d5a940bcbd8a Alan Raphael <alanraphael7@gmail.com> 1768314150 -0300	commit: css new
+379aab1fa560c6a7258edd89c390d5a940bcbd8a 60fe21ad6efdfa2fe1336d2fdfc63d32196c4763 Alan Raphael <alanraphael7@gmail.com> 1768315695 -0300	commit: css new2
+60fe21ad6efdfa2fe1336d2fdfc63d32196c4763 293f47bd31258326e04ff0df0c991b32d37b8f83 Alan Raphael <alanraphael7@gmail.com> 1768322054 -0300	commit: DELETE ALL GMS
+293f47bd31258326e04ff0df0c991b32d37b8f83 b2c9b3b2bb68c0806dabb43f8538381a4e45b91c Alan Raphael <alanraphael7@gmail.com> 1768325245 -0300	commit: ip
+b2c9b3b2bb68c0806dabb43f8538381a4e45b91c 0a8844851ae3d2f0a8fbb67b35bf59cf7e7a3231 Alan Raphael <alanraphael7@gmail.com> 1768326248 -0300	commit: debug order
+0a8844851ae3d2f0a8fbb67b35bf59cf7e7a3231 9c1abec13c5c4cefd64810d99626a6c91f97afd0 Alan Raphael <alanraphael7@gmail.com> 1768326636 -0300	commit: debug order2
+9c1abec13c5c4cefd64810d99626a6c91f97afd0 734024f95ecc78eeca2cb529c21767cefc24c1ba Alan Raphael <alanraphael7@gmail.com> 1768327068 -0300	commit: debug order3
+734024f95ecc78eeca2cb529c21767cefc24c1ba 5058314cb0efe76883282cba70661e11806969d0 Alan Raphael <alanraphael7@gmail.com> 1768328107 -0300	commit: debug order4
+5058314cb0efe76883282cba70661e11806969d0 bbc34a0109c5857d719973c11b4960c555bfd54e Alan Raphael <alanraphael7@gmail.com> 1768328457 -0300	commit: debug order5
+bbc34a0109c5857d719973c11b4960c555bfd54e 5f74216da331ce90f7dde19318ece137c4c09004 Alan Raphael <alanraphael7@gmail.com> 1768329711 -0300	commit: debug order6
+5f74216da331ce90f7dde19318ece137c4c09004 49690a5a3249bbac1a7dd4218d6410f071f6206c Alan Raphael <alanraphael7@gmail.com> 1768329766 -0300	commit: debug order7
+49690a5a3249bbac1a7dd4218d6410f071f6206c 9952fe6fbc6c289091eb0112cc447ecee799bfc2 Alan Raphael <alanraphael7@gmail.com> 1768335888 -0300	commit: debug order8
+9952fe6fbc6c289091eb0112cc447ecee799bfc2 b258ba3df052141c0a8a98b892e255ecb71bdcb4 Alan Raphael <alanraphael7@gmail.com> 1768336182 -0300	commit: fix order 2026
+b258ba3df052141c0a8a98b892e255ecb71bdcb4 5b90651633b7c6bc45f7ee3888ec94460beaec74 Alan Raphael <alanraphael7@gmail.com> 1768337367 -0300	commit: fix order ZERO
+5b90651633b7c6bc45f7ee3888ec94460beaec74 56b083b2050ef516bb31f10b35af8b9362db8fe0 Alan Raphael <alanraphael7@gmail.com> 1768388806 -0300	commit: adjust color
+56b083b2050ef516bb31f10b35af8b9362db8fe0 86f8700e5641f8f0607f2d06648d1c40091b821c Alan Raphael <alanraphael7@gmail.com> 1768409375 -0300	commit: geosell
+86f8700e5641f8f0607f2d06648d1c40091b821c 6cfe520173b22d6c1cfeddd99a42acf1f0e8ffb1 Alan Raphael <alanraphael7@gmail.com> 1768409953 -0300	commit: geosell2
+6cfe520173b22d6c1cfeddd99a42acf1f0e8ffb1 665d8d8ea9f59584c796fdfce09874e40da194d9 Alan Raphael <alanraphael7@gmail.com> 1768414292 -0300	commit: fix geo
+665d8d8ea9f59584c796fdfce09874e40da194d9 66584dca131af47045380f50d4078ffc8880dca1 Alan Raphael <alanraphael7@gmail.com> 1768417427 -0300	commit: final geo?
+66584dca131af47045380f50d4078ffc8880dca1 d89985721f8f06845b77bc0cb21192823a2a0a2b Alan Raphael <alanraphael7@gmail.com> 1768417930 -0300	commit: final geo?2
+d89985721f8f06845b77bc0cb21192823a2a0a2b a8b0586e48e4907f67064d8f7d6b1d75c091f777 Alan Raphael <alanraphael7@gmail.com> 1768419522 -0300	commit: geo 3
+a8b0586e48e4907f67064d8f7d6b1d75c091f777 e8f6fc7944aa6136055f8ef46acd07c314c3b2d4 Alan Raphael <alanraphael7@gmail.com> 1768421961 -0300	commit: dash
+e8f6fc7944aa6136055f8ef46acd07c314c3b2d4 2eab280e055591ca561fdedfe76c9a084aa2873f Alan Raphael <alanraphael7@gmail.com> 1768423150 -0300	commit: dash2
+2eab280e055591ca561fdedfe76c9a084aa2873f 56095f88f3e69eefb44277c1631e590680786b56 Alan Raphael <alanraphael7@gmail.com> 1768423259 -0300	commit: dash3
+56095f88f3e69eefb44277c1631e590680786b56 d7c79dc5afd83b3bfbbd6704e477592089b9eaaa Alan Raphael <alanraphael7@gmail.com> 1768423799 -0300	commit: schema
+d7c79dc5afd83b3bfbbd6704e477592089b9eaaa 58fe2394313f680c143e196ccd76673c275a6783 Alan Raphael <alanraphael7@gmail.com> 1768573951 -0300	commit: leo
+58fe2394313f680c143e196ccd76673c275a6783 5b70f6bd75a15dc589236393c61ca43d44a1b51c Alan Raphael <alanraphael7@gmail.com> 1768824481 -0300	commit: fix orders debug
+5b70f6bd75a15dc589236393c61ca43d44a1b51c d7f78d6e02515e8da2535c2ec61bd72ba4fe3230 Alan Raphael <alanraphael7@gmail.com> 1768825902 -0300	commit: fix orders routes
+d7f78d6e02515e8da2535c2ec61bd72ba4fe3230 9e10a96fdd2ba745e57b7933031a4ba3e3eca405 Alan Raphael <alanraphael7@gmail.com> 1768827942 -0300	commit: fix orders routes2
+9e10a96fdd2ba745e57b7933031a4ba3e3eca405 13f356dc121ccdb790ca845e8666bfa971c80b7a Alan Raphael <alanraphael7@gmail.com> 1768828121 -0300	commit: fix orders routes2
+13f356dc121ccdb790ca845e8666bfa971c80b7a d64dca604d4f0a269a5cfe9ce0879426c9059a84 Alan Raphael <alanraphael7@gmail.com> 1768830097 -0300	commit: fix orders routes3
+d64dca604d4f0a269a5cfe9ce0879426c9059a84 6c919cb4356dcdbca34336f7ca8db697d7217397 Alan Raphael <alanraphael7@gmail.com> 1768830584 -0300	commit: fix DASH
+6c919cb4356dcdbca34336f7ca8db697d7217397 c490a1897cda78fa41aba3235a220fc0ca0dc89e Alan Raphael <alanraphael7@gmail.com> 1768831273 -0300	commit: fix DASH2
+c490a1897cda78fa41aba3235a220fc0ca0dc89e 24698821ff60fba9bc9801ec8040123e2117b15c Alan Raphael <alanraphael7@gmail.com> 1768832475 -0300	commit: fix DASH3
+24698821ff60fba9bc9801ec8040123e2117b15c 130171082ed3a9a3b09e169cc0b9cdb0cc2a2ffb Alan Raphael <alanraphael7@gmail.com> 1768833052 -0300	commit: fix DASH4
+130171082ed3a9a3b09e169cc0b9cdb0cc2a2ffb e49805a3acc96a504ff8926999a631d67f90d979 Alan Raphael <alanraphael7@gmail.com> 1768833197 -0300	commit: fix DASH5
+e49805a3acc96a504ff8926999a631d67f90d979 3fcbd3dfdf22e72153f4302620d1ee44e780b047 Alan Raphael <alanraphael7@gmail.com> 1768843561 -0300	commit: fix DASH6
+3fcbd3dfdf22e72153f4302620d1ee44e780b047 c91389f633b121d023a0f9b1f9f0990ceca672c5 Alan Raphael <alanraphael7@gmail.com> 1768844595 -0300	commit: fix DASH7
+c91389f633b121d023a0f9b1f9f0990ceca672c5 6e81f181eb3b43dbb9d7122dc2ce67479f5deb8a Alan Raphael <alanraphael7@gmail.com> 1768847819 -0300	commit: new dash live
+6e81f181eb3b43dbb9d7122dc2ce67479f5deb8a ac4331680290f2683a4d50b8896923246dc3b92c Alan Raphael <alanraphael7@gmail.com> 1768848498 -0300	commit: new dash live2
+ac4331680290f2683a4d50b8896923246dc3b92c 490a9bb2ca9a4282443cdbadd2644ff1c613dc3e Alan Raphael <alanraphael7@gmail.com> 1768854001 -0300	commit: new dash live3
+490a9bb2ca9a4282443cdbadd2644ff1c613dc3e ddc3eaabf2329dc1d0ec93aa9267844279c188bc Alan Raphael <alanraphael7@gmail.com> 1768855476 -0300	commit: new dash live4
+ddc3eaabf2329dc1d0ec93aa9267844279c188bc d4b8c7dc44edaf325c6a229eb45834d50f9df4f4 Alan Raphael <alanraphael7@gmail.com> 1768928503 -0300	commit: trends1
+d4b8c7dc44edaf325c6a229eb45834d50f9df4f4 e3b66d8c95b1a6c2a288ed960e69d212f0edd479 Alan Raphael <alanraphael7@gmail.com> 1768929058 -0300	commit: trends2
+e3b66d8c95b1a6c2a288ed960e69d212f0edd479 3204af4e63b9d50d14c53dcd122aa29ac4824b63 Alan Raphael <alanraphael7@gmail.com> 1768929270 -0300	commit: trends3
+3204af4e63b9d50d14c53dcd122aa29ac4824b63 20a0a84c773b0e8cb049db3521443e9fa0f3c9f6 Alan Raphael <alanraphael7@gmail.com> 1768929767 -0300	commit: trends4
+20a0a84c773b0e8cb049db3521443e9fa0f3c9f6 7bbeb87212741f077387f7eba89aba3d41c22596 Alan Raphael <alanraphael7@gmail.com> 1768930087 -0300	commit: trends5
+7bbeb87212741f077387f7eba89aba3d41c22596 1d977fb38ab456c17315e58b8ae0d0024e4bbf5d Alan Raphael <alanraphael7@gmail.com> 1768940805 -0300	commit: new csss
+1d977fb38ab456c17315e58b8ae0d0024e4bbf5d 84094d7c115f67f60f1abb536b9312e20476dd48 Alan Raphael <alanraphael7@gmail.com> 1768941458 -0300	commit: new css2
+84094d7c115f67f60f1abb536b9312e20476dd48 7922e18e0ae0c1a8840224521d03ba6176e6b8bf Alan Raphael <alanraphael7@gmail.com> 1768942052 -0300	commit: new css3
+7922e18e0ae0c1a8840224521d03ba6176e6b8bf 3b2248b10eab0ad53af27ee549318c1d0a15e000 Alan Raphael <alanraphael7@gmail.com> 1768997137 -0300	commit: fix css ads grafs
+3b2248b10eab0ad53af27ee549318c1d0a15e000 f2ee4cc4c8226115fcbdea75311b9cae4ae80ffd Alan Raphael <alanraphael7@gmail.com> 1769002837 -0300	commit: fix ads err
+f2ee4cc4c8226115fcbdea75311b9cae4ae80ffd 8e5908791e759f7dcb0cf55bcfee13f7a17dcf93 Alan Raphael <alanraphael7@gmail.com> 1769002977 -0300	commit: fix ads err2
+8e5908791e759f7dcb0cf55bcfee13f7a17dcf93 99823308d4adecfc83bffca462ea73299914644e Alan Raphael <alanraphael7@gmail.com> 1769005134 -0300	commit: fix ads err3
+99823308d4adecfc83bffca462ea73299914644e 6e7124f342ac985b5a5e766c6fc39dc02678d4df Alan Raphael <alanraphael7@gmail.com> 1769005758 -0300	commit: fix error backup restore date
+6e7124f342ac985b5a5e766c6fc39dc02678d4df 5bb373687a595e95f8e0bcfa2d3b29584a8b9710 Alan Raphael <alanraphael7@gmail.com> 1769006167 -0300	commit: fix error backup restore date2
+5bb373687a595e95f8e0bcfa2d3b29584a8b9710 b3445b48584b26d519d127c722f5dff827482362 Alan Raphael <alanraphael7@gmail.com> 1769007197 -0300	commit: fix error backup restore date3
+b3445b48584b26d519d127c722f5dff827482362 3d02746f42c4be09b1c4baafd32eef562b0386f6 Alan Raphael <alanraphael7@gmail.com> 1769025978 -0300	commit: fix error backup restore date4
+3d02746f42c4be09b1c4baafd32eef562b0386f6 e8e944baf8811e5ac4746964fe012411f3d587ed Alan Raphael <alanraphael7@gmail.com> 1769082685 -0300	commit: new function seo
+e8e944baf8811e5ac4746964fe012411f3d587ed bac8b99631525e54b910b5f9c6666a0672d48f87 Alan Raphael <alanraphael7@gmail.com> 1769083397 -0300	commit: new function seo2
+bac8b99631525e54b910b5f9c6666a0672d48f87 6bbff32b1ca3ce191d30b610478812e90de320c6 Alan Raphael <alanraphael7@gmail.com> 1769084721 -0300	commit: new function seo3
+6bbff32b1ca3ce191d30b610478812e90de320c6 3a70d8c683ffaa441538b72ec6a374407d178112 Alan Raphael <alanraphael7@gmail.com> 1769085014 -0300	commit: new function seo4
+3a70d8c683ffaa441538b72ec6a374407d178112 623c24de23338cfe841a1dffece7976509a3575c Alan Raphael <alanraphael7@gmail.com> 1769085375 -0300	commit: new function seo5
+623c24de23338cfe841a1dffece7976509a3575c 906367a4d2fe936e656798d86c9bc61c33650e3e Alan Raphael <alanraphael7@gmail.com> 1769089051 -0300	commit: new function seoshp/goog
+906367a4d2fe936e656798d86c9bc61c33650e3e 303394fcf68614f340615bd5382697dfdebd7645 Alan Raphael <alanraphael7@gmail.com> 1769090392 -0300	commit: new function seoshp/goog2
+303394fcf68614f340615bd5382697dfdebd7645 bbba0581392324c33d036a9d6b20183c8ee79d1c Alan Raphael <alanraphael7@gmail.com> 1769092437 -0300	commit: new function seoshp/goog3
+bbba0581392324c33d036a9d6b20183c8ee79d1c 21b9b30594dba1b9102bd409e36f542857ae7a55 Alan Raphael <alanraphael7@gmail.com> 1769098058 -0300	commit: new function seoshp/goog4
+21b9b30594dba1b9102bd409e36f542857ae7a55 32e6c87fa8a005cdb227d8bfa71906a7764bedad Alan Raphael <alanraphael7@gmail.com> 1769100549 -0300	commit: new function seoshp/goog5
+32e6c87fa8a005cdb227d8bfa71906a7764bedad 5e45118064e83a5b5237cdb7f87b308e95fda20f Alan Raphael <alanraphael7@gmail.com> 1769108303 -0300	commit: fix product
+5e45118064e83a5b5237cdb7f87b308e95fda20f d452ed614f1e867c4d30e350379a9507ff6ce0d5 Alan Raphael <alanraphael7@gmail.com> 1769108954 -0300	commit: fix product2
+d452ed614f1e867c4d30e350379a9507ff6ce0d5 d378d201f18f4cca9574ac2350e41a40e221e0d7 Alan Raphael <alanraphael7@gmail.com> 1769110281 -0300	commit: fix product4
+d378d201f18f4cca9574ac2350e41a40e221e0d7 83f8eaf1212db445dffe63345de4449b72492cfe Alan Raphael <alanraphael7@gmail.com> 1769428146 -0300	commit: comments
+83f8eaf1212db445dffe63345de4449b72492cfe b4d214e06a04ac9b1fb74fcab5bfa26b80853ca3 Alan Raphael <alanraphael7@gmail.com> 1769429048 -0300	commit: comments2
+b4d214e06a04ac9b1fb74fcab5bfa26b80853ca3 ebf8a66b128d8a04a5a88acb00365c6fa35d0023 Alan Raphael <alanraphael7@gmail.com> 1769430200 -0300	commit: comments32
+ebf8a66b128d8a04a5a88acb00365c6fa35d0023 59ebc71ed0f5d2443d9a7a563fcaa6ab109f47d8 Alan Raphael <alanraphael7@gmail.com> 1769431858 -0300	commit: fix routes
+59ebc71ed0f5d2443d9a7a563fcaa6ab109f47d8 4a380e5ddc211ad20e3469ac24e399f5a91c1138 Alan Raphael <alanraphael7@gmail.com> 1769438808 -0300	commit: fix routesads
+4a380e5ddc211ad20e3469ac24e399f5a91c1138 476f95815d07264552805aa92e43f4daba0499b5 Alan Raphael <alanraphael7@gmail.com> 1769445637 -0300	commit: fix routesads2
+476f95815d07264552805aa92e43f4daba0499b5 d69dd1121d56d0644bf796e3aa44d8eb2494e31a Alan Raphael <alanraphael7@gmail.com> 1769446023 -0300	commit: fix routesads3
+d69dd1121d56d0644bf796e3aa44d8eb2494e31a 9249ec37bb75ca290770e9c40aceb4effc1bfc11 Alan Raphael <alanraphael7@gmail.com> 1769449017 -0300	commit: fix routesads4
+9249ec37bb75ca290770e9c40aceb4effc1bfc11 d2d4d858c71c5c22b6ea8a22f6d629b3a57e0ea9 Alan Raphael <alanraphael7@gmail.com> 1769449542 -0300	commit: fix routesads5
+d2d4d858c71c5c22b6ea8a22f6d629b3a57e0ea9 16b8b0d33d2fa5f7772c653299cd9f2fe0e0b67e Alan Raphael <alanraphael7@gmail.com> 1769449931 -0300	commit: fix routesads6
+16b8b0d33d2fa5f7772c653299cd9f2fe0e0b67e 890a95577fa26fb77d2a0d0489a0d58fc9d094cb Alan Raphael <alanraphael7@gmail.com> 1769455904 -0300	commit: fix routesads7
+890a95577fa26fb77d2a0d0489a0d58fc9d094cb 0e56a299b739ebbae0359aea8ad3ad4f418563c2 Alan Raphael <alanraphael7@gmail.com> 1769456365 -0300	commit: fix routesads8
+0e56a299b739ebbae0359aea8ad3ad4f418563c2 185f08f4d9fc7205e8d906fa8aaddbdc71aca56f Alan Raphael <alanraphael7@gmail.com> 1769457310 -0300	commit: fix routesads8
+185f08f4d9fc7205e8d906fa8aaddbdc71aca56f 61067a068c80629a5be126892de8a453ae567b56 Alan Raphael <alanraphael7@gmail.com> 1769458378 -0300	commit: fix routesads9
+61067a068c80629a5be126892de8a453ae567b56 3ac82f6643fc0351af3eade6bf3e5debe212ac0c Alan Raphael <alanraphael7@gmail.com> 1769459108 -0300	commit: fix routesads10
+3ac82f6643fc0351af3eade6bf3e5debe212ac0c 00f54bbebc815c95197d23708a9cb3db1d0aa8ae Alan Raphael <alanraphael7@gmail.com> 1769459569 -0300	commit: fix routesads11

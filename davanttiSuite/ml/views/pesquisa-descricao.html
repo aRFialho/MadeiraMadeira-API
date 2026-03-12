@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <link rel="stylesheet" href="/ml/css/dashboard.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+  <link href="/ml/css/pesquisa-descricao.css?v=4" rel="stylesheet"/>
+  <title>Pesquisa em Descrições - API Mercado Livre</title>
+</head>
+<body>
+
+  <!-- TOP BAR -->
+  <header class="account-bar">
+   <div class="account-bar__left">
+    <a class="brand" href="/ml/dashboard" aria-label="DAVANTTI">
+      <img
+        src="/ml/img/davantti.png"
+        alt="DAVANTTI"
+        class="brand__logo"
+        width="170"
+        height="42"
+        decoding="async"
+        loading="eager"
+      />
+    </a>
+  </div>
+
+    <div class="account-bar__right">
+      <div class="account-bar__current">
+        <span class="lbl">Conta:</span>
+        <span id="account-current" class="val">Carregando...</span>
+      </div>
+
+      <button id="btn-status" class="account-bar__status" title="Ver status do token">Status</button>
+      <button id="account-switch" class="account-bar__switch" title="Trocar de conta">Trocar Conta</button>
+    </div>
+  </header>
+
+<!-- NAV TABS -->
+  <nav class="main-nav">
+    <div class="tabs">
+      <button class="nav-tab" onclick="location.href=mlUrl('/dashboard#dashboard')">Dashboard</button>
+      <button class="nav-tab" onclick="location.href=mlUrl('/dashboard#anuncios')">Anúncios</button>
+      <button class="nav-tab  active" onclick="location.href=mlUrl('/dashboard#produtos')">Alterações Massivas</button>
+      <button class="nav-tab" onclick="location.href=mlUrl('/dashboard#ia')">IA & Analytics</button>
+      <button class="nav-tab" onclick="location.href=mlUrl('/dashboard#publicidade')">Publicidade</button>
+      <button class="nav-tab" onclick="location.href=mlUrl('/dashboard#benchmarking')">Benchmarking</button>
+      <button class="nav-tab" onclick="location.href=mlUrl('/dashboard#alertas')">Alertas</button>
+      <button class="nav-tab" onclick="location.href=mlUrl('/dashboard#ml')">ML</button>
+      <button class="nav-tab" onclick="location.href=mlUrl('/full')">FULL</button>
+      <button class="nav-tab" onclick="location.href=mlUrl('/dashboard#admin')">Admin</button>
+    </div>
+  </nav>
+
+  <!-- MODAL STATUS (TOKEN) -->
+  <div id="modal-status" class="modal">
+    <div class="modal-content">
+      <div class="modal-header alt">
+        <h3>🟢 Status da Integração</h3>
+        <span class="close" onclick="fecharModalStatus()">&times;</span>
+      </div>
+      <div class="modal-body">
+        <div class="status-grid">
+          <div class="stat-mini"><h4 id="status-usuario">—</h4><p>Usuário</p></div>
+          <div class="stat-mini"><h4 id="status-token">—</h4><p>Token (preview)</p></div>
+          <div class="stat-mini"><h4 id="status-msg">—</h4><p>Mensagem</p></div>
+        </div>
+
+        <div class="modal-controls">
+          <button class="btn-small btn-primary" onclick="verificarToken(true)">🔍 Verificar</button>
+          <button class="btn-small btn-success" onclick="renovarToken(true)">🔄 Renovar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAGE -->
+  <main class="page-wrap">
+    <section class="tab-page active">
+      <!-- ✅ container único da página (não duplicar .container dentro) -->
+      <div class="pd-container">
+
+        <!-- HERO / INTRO -->
+        <section class="hero">
+          <div class="hero__content">
+            <h1>Sistema avançado de pesquisa em massa com processamento inteligente</h1>
+            <p>Faça buscas, processe grandes volumes em background e acompanhe tudo em tempo real.</p>
+          </div>
+        </section>
+
+        <!-- PROCESSAMENTO EM MASSA -->
+        <section class="tab-content active" id="processamento-massa">
+          <div class="callout callout-warning">
+            <strong>🚀 Processamento em Massa:</strong> Para lotes grandes (50+). Processamento em background com monitoramento e download.
+          </div>
+
+          <div class="grid-2">
+            <!-- modos -->
+            <div class="card">
+              <label class="label">Escolha o Modo de Processamento</label>
+
+              <div class="modes">
+                <div class="processing-mode" id="modo-direto" onclick="selecionarModo('direto')">
+                  <div class="mode__icon">⚡</div>
+                  <div class="mode__content">
+                    <h3>Processamento Direto</h3>
+                    <p>Resultados na mesma página. Recomendado até 100 MLBs.</p>
+                    <div class="tags">
+                      <span class="tag">Resultados Imediatos</span>
+                      <span class="tag">Até 100 MLBs</span>
+                      <span class="tag">Sem Download</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="processing-mode" id="modo-background" onclick="selecionarModo('background')">
+                  <div class="mode__icon">🚀</div>
+                  <div class="mode__content">
+                    <h3>Processamento em Background</h3>
+                    <p>Fila para grandes volumes. Ideal para milhares de MLBs com download.</p>
+                    <div class="tags">
+                      <span class="tag">Grandes Volumes</span>
+                      <span class="tag">Download</span>
+                      <span class="tag">Monitoramento</span>
+                      <span class="tag">Sem Limite</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- formulário -->
+            <form class="card" id="form-processamento-massa">
+              <div class="form-group">
+                <label for="tipo-pesquisa-massa">Tipo de Pesquisa</label>
+                <select class="form-control" id="tipo-pesquisa-massa" onchange="alterarTipoPesquisaMassa()" required>
+                  <option value="">Selecione o tipo de pesquisa...</option>
+                  <option value="detectar_dois_volumes">🔍 Detectar Produtos com Dois Volumes</option>
+                  <option value="pesquisar_texto">📝 Pesquisar Texto Específico</option>
+                </select>
+              </div>
+
+              <div class="form-group" id="grupo-texto-massa" style="display:none;">
+                <label for="texto-pesquisa-massa">Texto para Pesquisar</label>
+                <input class="form-control" id="texto-pesquisa-massa" placeholder="Digite o texto a ser pesquisado..." type="text"/>
+                <small class="help">O sistema busca em títulos, descrições e atributos.</small>
+              </div>
+
+              <div class="form-group">
+                <label for="mlbs-massa">MLBs para Processar</label>
+                <textarea
+                  class="form-control"
+                  id="mlbs-massa"
+                  oninput="contarMLBsMassa()"
+                  placeholder="Cole os MLBs aqui, um por linha ou separados por vírgula..."
+                  required
+                  rows="10"
+                ></textarea>
+
+                <div class="counter" id="contador-massa">
+                  <div class="counter__items">
+                    <div class="chip">
+                      <div class="chip__num" id="total-mlbs-massa">0</div>
+                      <div class="chip__label">MLBs Detectados</div>
+                    </div>
+                    <div class="chip">
+                      <div class="chip__num" id="validos-mlbs-massa">0</div>
+                      <div class="chip__label">Válidos</div>
+                    </div>
+                    <div class="chip">
+                      <div class="chip__num" id="invalidos-mlbs-massa">0</div>
+                      <div class="chip__label">Inválidos</div>
+                    </div>
+                    <div class="chip">
+                      <div class="chip__num" id="tempo-estimado-massa">0</div>
+                      <div class="chip__label">Min. Estimados</div>
+                    </div>
+                  </div>
+
+                  <div class="pill" id="status-processamento-massa">Modo: Não Selecionado</div>
+                </div>
+              </div>
+
+              <div class="form-group checkbox">
+                <label>
+                  <input id="forcar-background-massa" onchange="atualizarModoProcessamento()" type="checkbox"/>
+                  🔧 Forçar processamento em background
+                </label>
+                <small class="help">Útil para monitorar progresso ou baixar resultados.</small>
+              </div>
+
+              <div class="form-actions">
+                <button class="btn btn-outline" onclick="limparFormularioMassa()" type="button">🗑️ Limpar</button>
+                <button class="btn btn-secondary" onclick="validarMLBsMassa()" type="button">✅ Validar MLBs</button>
+                <button class="btn btn-primary" id="btn-processar-massa" type="submit">🚀 Iniciar Processamento</button>
+              </div>
+            </form>
+          </div>
+        </section>
+
+        <!-- MONITORAMENTO -->
+        <section class="tab-content" id="monitoramento">
+          <div class="callout callout-info">
+            <strong>📊 Monitoramento:</strong> Acompanhe seus processos em tempo real.
+          </div>
+
+          <div class="toolbar">
+            <button class="btn btn-primary" onclick="atualizarMonitoramento()">🔄 Atualizar</button>
+            <button class="btn btn-success" onclick="abrirModalNovoProcesso()">➕ Novo Processo</button>
+            <button class="btn btn-warning" id="btn-pausar-sistema" onclick="controlarSistema('pausar')">⏸️ Pausar Sistema</button>
+            <button class="btn btn-outline" onclick="window.open('/dashboard','_blank')">🏠 Dashboard Principal</button>
+          </div>
+
+          <div class="stats" id="stats-monitoramento">
+            <div class="stat-card">
+              <div class="stat-number" id="stat-processando">0</div>
+              <div class="stat-label">Processando</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-number" id="stat-aguardando">0</div>
+              <div class="stat-label">Na Fila</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-number" id="stat-concluidos">0</div>
+              <div class="stat-label">Concluídos</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-number" id="stat-erros">0</div>
+              <div class="stat-label">Com Erros</div>
+            </div>
+          </div>
+
+          <div class="filters">
+            <div class="filter">
+              <label for="filtro-status-monitor">Status</label>
+              <select class="form-control" id="filtro-status-monitor" onchange="filtrarProcessosMonitor()">
+                <option value="">Todos</option>
+                <option value="processando">Processando</option>
+                <option value="aguardando">Aguardando</option>
+                <option value="concluido">Concluído</option>
+                <option value="cancelado">Cancelado</option>
+              </select>
+            </div>
+
+            <div class="filter">
+              <label for="filtro-limite-monitor">Mostrar</label>
+              <select class="form-control" id="filtro-limite-monitor" onchange="filtrarProcessosMonitor()">
+                <option value="10">10 processos</option>
+                <option value="20" selected>20 processos</option>
+                <option value="50">50 processos</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="jobs" id="lista-processos-monitor">
+            <div class="loading">
+              <div class="spinner"></div>
+              <span>Carregando processos...</span>
+            </div>
+          </div>
+        </section>
+
+      </div><!-- /pd-container -->
+    </section>
+  </main>
+
+  <!-- DRAWER DE RESULTADOS (fora do container para sobrepor corretamente) -->
+  <aside class="drawer" id="results-container">
+    <div class="drawer__header">
+      <h3>📊 Resultados da Pesquisa</h3>
+      <div class="drawer__actions">
+        <button class="btn btn-secondary" onclick="exportarResultados()">📥 Exportar</button>
+        <button class="btn btn-outline" onclick="fecharResultados()">✖️ Fechar</button>
+      </div>
+    </div>
+    <div class="stats" id="results-stats"></div>
+    <div class="drawer__content" id="results-content"></div>
+  </aside>
+
+  <!-- MODAL: NOVO PROCESSO -->
+  <div class="modal" id="modal-novo-processo">
+    <div class="modal__content">
+      <div class="modal__header">
+        <h3>➕ Iniciar Novo Processo</h3>
+        <button class="modal__close" onclick="fecharModalNovoProcesso()">×</button>
+      </div>
+      <div class="modal__body">
+        <form id="form-modal-processo">
+          <div class="form-group">
+            <label for="tipo-modal">Tipo de Pesquisa</label>
+            <select class="form-control" id="tipo-modal" required>
+              <option value="">Selecione...</option>
+              <option value="detectar_dois_volumes">Detectar Produtos com Dois Volumes</option>
+              <option value="pesquisar_texto">Pesquisar Texto Específico</option>
+            </select>
+          </div>
+
+          <div class="form-group" id="grupo-texto-modal" style="display:none;">
+            <label for="texto-modal">Texto para Pesquisar</label>
+            <input class="form-control" id="texto-modal" type="text"/>
+          </div>
+
+          <div class="form-group">
+            <label for="mlbs-modal">MLBs</label>
+            <textarea class="form-control" id="mlbs-modal" placeholder="Cole os MLBs aqui..." rows="6"></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal__footer">
+        <button class="btn btn-outline" onclick="fecharModalNovoProcesso()">Cancelar</button>
+        <button class="btn btn-primary" onclick="iniciarProcessoModal()">Iniciar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: DETALHES DO JOB -->
+  <div class="modal" id="modal-detalhes-job">
+    <div class="modal__content">
+      <div class="modal__header">
+        <h3>📊 Detalhes do Processo</h3>
+        <button class="modal__close" onclick="fecharModalDetalhes()">×</button>
+      </div>
+      <div class="modal__body">
+        <div id="detalhes-job-content"></div>
+      </div>
+      <div class="modal__footer">
+        <button class="btn btn-outline" onclick="fecharModalDetalhes()">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/ml/js/ml-base.js"></script>
+
+  <!-- ✅ Account bar (Trocar Conta / Conta atual) -->
+  <script src="/ml/js/account-bar.js" defer></script>
+
+  <!-- bump de versão para forçar recarregar JS -->
+  <script src="/ml/js/pesquisa-descricao.js?v=4"></script>
+
+  <script>
+    // Conta atual + Trocar conta
+    const ACCOUNT_LABELS = { drossi: 'DRossi Interiores', diplany: 'Diplany', rossidecor: 'Rossi Decor' };
+
+    async function carregarContaAtual() {
+      const currentEl = document.getElementById('account-current');
+      try {
+        const r = await fetch('/ml/api/account/current', { cache: 'no-store' });
+        const data = await r.json();
+        let shown = 'Não selecionada';
+
+        if (data && (data.ok || data.success)) {
+          shown = data.label || ACCOUNT_LABELS[data.accountKey] || data.accountKey || 'Desconhecida';
+        } else if (data) {
+          shown = data.label || data.accountKey || 'Desconhecida';
+        }
+        currentEl.textContent = shown;
+      } catch (e) {
+        currentEl.textContent = 'Indisponível';
+      }
+    }
+
+    async function trocarConta() {
+      try { await fetch('/ml/api/account/clear', { method: 'POST' }); }
+      finally { window.location.href = '/select-conta'; }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+      carregarContaAtual();
+      var switchBtn = document.getElementById('account-switch');
+      if (switchBtn) switchBtn.addEventListener('click', trocarConta);
+    });
+
+    // Status (token)
+    function abrirModalStatus() {
+      document.getElementById('modal-status').style.display = 'block';
+    }
+    function fecharModalStatus() {
+      document.getElementById('modal-status').style.display = 'none';
+    }
+
+    document.getElementById('btn-status').addEventListener('click', async () => {
+      abrirModalStatus();
+      await verificarToken(true);
+    });
+
+    async function verificarToken(updateModal=false) {
+      try {
+        const response = await fetch('/ml/api/tokens/verificar-token');
+        const data = await response.json();
+
+        if (data.success) {
+          if (updateModal) {
+            document.getElementById('status-usuario').textContent = data.nickname || '—';
+            document.getElementById('status-token').textContent = data.token_preview || '—';
+            document.getElementById('status-msg').textContent = data.message || 'OK';
+          } else {
+            alert('✅ ' + data.message + '\nUser: ' + data.nickname + '\nToken: ' + data.token_preview);
+          }
+        } else {
+          if (updateModal) document.getElementById('status-msg').textContent = data.error || 'Falha ao verificar';
+          else alert('❌ ' + (data.error || 'Falha ao verificar'));
+        }
+      } catch (error) {
+        if (updateModal) document.getElementById('status-msg').textContent = 'Erro: ' + error.message;
+        else alert('❌ Erro: ' + error.message);
+      }
+    }
+
+    async function renovarToken(updateModal=false) {
+      try {
+        const response = await fetch('/ml/api/tokens/renovar-token-automatico', { method: 'POST' });
+        const data = await response.json();
+
+        if (data.success) {
+          if (updateModal) {
+            document.getElementById('status-usuario').textContent = data.nickname || '—';
+            document.getElementById('status-token').textContent = (data.access_token || '').substring(0, 20) + '...';
+            document.getElementById('status-msg').textContent = data.message || 'Token renovado';
+          } else {
+            alert('✅ ' + data.message + '\nUser: ' + data.nickname + '\nNovo token: ' + data.access_token.substring(0, 20) + '...');
+          }
+        } else {
+          if (updateModal) document.getElementById('status-msg').textContent = data.error || 'Falha ao renovar';
+          else alert('❌ ' + (data.error || 'Falha ao renovar'));
+        }
+      } catch (error) {
+        if (updateModal) document.getElementById('status-msg').textContent = 'Erro: ' + error.message;
+        else alert('❌ Erro: ' + error.message);
+      }
+    }
+
+    // Fechar modal clicando fora
+    window.addEventListener('click', function(event) {
+      const m2 = document.getElementById('modal-status');
+      if (event.target === m2) fecharModalStatus();
+    });
+  </script>
+
+</body>
+</html>

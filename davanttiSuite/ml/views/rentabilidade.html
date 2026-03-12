@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Rentabilidade</title>
+  <link rel="stylesheet" href="/ml/css/dashboard.css?v=4">
+  <link rel="stylesheet" href="/ml/css/rentabilidade.css?v=4">
+  <script src="/ml/js/ml-base.js"></script>
+  <script src="/ml/js/account-bar.js" defer></script>
+  <script src="/ml/js/rentabilidade.js" defer></script>
+</head>
+<body>
+  <header class="account-bar">
+    <div class="account-bar__left">
+      <a class="brand" href="/ml/dashboard" aria-label="DAVANTTI">
+        <img src="/ml/img/davantti.png" alt="DAVANTTI" class="brand__logo" width="170" height="42" decoding="async" loading="eager"/>
+      </a>
+    </div>
+    <div class="account-bar__right">
+      <div class="account-bar__current">
+        <span class="lbl">Conta:</span>
+        <span id="account-current" class="val" data-account-label>Carregando...</span>
+      </div>
+      <button id="btn-status" class="account-bar__status" type="button">Status</button>
+      <button id="account-switch" class="account-bar__switch" type="button" data-account-switch>Trocar Conta</button>
+    </div>
+  </header>
+
+  <nav class="main-nav">
+    <div class="tabs">
+      <button class="nav-tab" onclick="location.href=mlUrl('/dashboard#dashboard')">Dashboard</button>
+      <button class="nav-tab" onclick="location.href=mlUrl('/dashboard#anuncios')">Anúncios</button>
+      <button class="nav-tab" onclick="location.href=mlUrl('/dashboard#produtos')">Alterações Massivas</button>
+      <button class="nav-tab active" onclick="location.href=mlUrl('/dashboard#ia')">IA & Analytics</button>
+      <button class="nav-tab" onclick="location.href=mlUrl('/dashboard#publicidade')">Publicidade</button>
+      <button class="nav-tab" onclick="location.href=mlUrl('/dashboard#benchmarking')">Benchmarking</button>
+      <button class="nav-tab" onclick="location.href=mlUrl('/dashboard#alertas')">Alertas</button>
+      <button class="nav-tab" onclick="location.href=mlUrl('/dashboard#ml')">ML</button>
+      <button class="nav-tab" onclick="location.href=mlUrl('/full')">FULL</button>
+      <button class="nav-tab" onclick="location.href=mlUrl('/dashboard#admin')">Admin</button>
+    </div>
+  </nav>
+
+  <main class="page-wrap">
+    <section class="rent-page container rent-container">
+      <div class="rent-header card-like">
+        <div>
+          <div class="rent-breadcrumb">IA & Analytics / Dashboard</div>
+          <h1>Rentabilidade</h1>
+          <p class="subtitle">Base exclusivamente em anúncios presentes em Product Ads, com colunas inspiradas na Adman e dados da API pública do Mercado Livre.</p>
+        </div>
+        <div class="rent-header__actions">
+          <span id="rent-note" class="rent-note">Carregando dados...</span>
+          <button id="btn-template" class="btn-secondary" type="button">Baixar modelo</button>
+          <label class="btn-secondary btn-upload" for="config-file">Importar planilha</label>
+          <input id="config-file" type="file" accept=".csv,.xls,.xlsx" hidden>
+          <button id="btn-reload" class="btn-primary" type="button">Atualizar</button>
+        </div>
+      </div>
+
+      <form id="rent-filters" class="rent-filters card-like" autocomplete="off">
+        <div class="field field--sm">
+          <label for="period">Período</label>
+          <select id="period" name="period">
+            <option value="30d">Últimos 30 dias</option>
+            <option value="14d">Últimos 14 dias</option>
+            <option value="7d">Últimos 7 dias</option>
+            <option value="custom">Personalizado</option>
+          </select>
+        </div>
+        <div class="field field--sm">
+          <label for="date_from">Data desde</label>
+          <input id="date_from" name="date_from" type="date">
+        </div>
+        <div class="field field--sm">
+          <label for="date_to">Data até</label>
+          <input id="date_to" name="date_to" type="date">
+        </div>
+        <div class="field field--lg">
+          <label for="q">Buscador</label>
+          <input id="q" name="q" type="search" placeholder="Buscar por título, ID ou SKU">
+        </div>
+        <div class="field field--lg">
+          <label for="campaign_id">Campanha</label>
+          <select id="campaign_id" name="campaign_id"><option value="">Todas as campanhas</option></select>
+        </div>
+
+        <div class="field field--sm">
+          <label for="margin_filter">Margem de lucro</label>
+          <select id="margin_filter" name="margin_filter">
+            <option value="all">Todos</option>
+            <option value="positive">Apenas positivo</option>
+            <option value="negative">Apenas negativo</option>
+          </select>
+        </div>
+        <div class="field field--sm">
+          <label for="sales_filter">Vendas</label>
+          <select id="sales_filter" name="sales_filter">
+            <option value="all">Todos</option>
+            <option value="with_sales">Com vendas</option>
+            <option value="without_sales">Sem vendas</option>
+          </select>
+        </div>
+        <div class="field field--sm">
+          <label for="item_status">Estado do item</label>
+          <select id="item_status" name="item_status">
+            <option value="active" selected>Ativo</option>
+            <option value="all">Todos</option>
+            <option value="inactive">Inativo</option>
+            <option value="paused">Pausado</option>
+            <option value="closed">Fechado</option>
+          </select>
+        </div>
+        <div class="field field--sm">
+          <label for="curve">Curva</label>
+          <select id="curve" name="curve">
+            <option value="all">Todas</option>
+            <option value="A">A</option>
+            <option value="B">B</option>
+            <option value="C">C</option>
+          </select>
+        </div>
+        <div class="field field--sm">
+          <label for="publicidade">Publicidade</label>
+          <select id="publicidade" name="publicidade">
+            <option value="all">Todos</option>
+            <option value="with_ads">Com publicidade</option>
+            <option value="without_ads">Sem publicidade</option>
+          </select>
+        </div>
+        <div class="field field--sm">
+          <label for="ad_status">Estado de publicidade</label>
+          <select id="ad_status" name="ad_status">
+            <option value="all">Todos</option>
+            <option value="active">Ativo</option>
+            <option value="paused">Pausado</option>
+            <option value="disabled">Desabilitado</option>
+            <option value="available">Disponível</option>
+          </select>
+        </div>
+        <div class="field field--sm">
+          <label for="full">FULL</label>
+          <select id="full" name="full">
+            <option value="all">Todos</option>
+            <option value="with_full">Com fulfillment</option>
+            <option value="without_full">Sem fulfillment</option>
+          </select>
+        </div>
+        <div class="field field--sm">
+          <label for="catalog">Catálogo</label>
+          <select id="catalog" name="catalog">
+            <option value="all">Todos</option>
+            <option value="with_catalog">Com catálogo</option>
+            <option value="without_catalog">Sem catálogo</option>
+          </select>
+        </div>
+
+        <label class="toggle-chip"><input id="classify_by_variation" name="classify_by_variation" type="checkbox"> Classificar por variação</label>
+        <label class="toggle-chip"><input id="only_without_product_cost" name="only_without_product_cost" type="checkbox"> Apenas sem custo de produto</label>
+        <label class="toggle-chip"><input id="group_by_family" name="group_by_family" type="checkbox"> Agrupar por família</label>
+
+        <div class="rent-filters__actions"><button class="btn-primary" type="submit">Filtrar</button></div>
+      </form>
+
+      <div id="rent-alert" class="rent-alert rent-alert--info">Base filtrada exclusivamente por anúncios presentes em Product Ads.</div>
+
+      <section class="rent-metrics" id="rent-metrics">
+        <article class="metric-card"><span>Faturamento bruto</span><strong id="metric-faturamento_bruto">R$ 0,00</strong></article>
+        <article class="metric-card"><span>Faturamento líquido</span><strong id="metric-faturamento_liquido">R$ 0,00</strong></article>
+        <article class="metric-card"><span>Vendas canceladas</span><strong id="metric-vendas_canceladas">R$ 0,00</strong></article>
+        <article class="metric-card"><span>Taxa de vendas</span><strong id="metric-taxa_vendas">R$ 0,00</strong></article>
+        <article class="metric-card"><span>Investimento</span><strong id="metric-investimento">R$ 0,00</strong></article>
+        <article class="metric-card"><span>Impostos</span><strong id="metric-impostos">R$ 0,00</strong></article>
+        <article class="metric-card"><span>Custo de envio</span><strong id="metric-custo_envio">R$ 0,00</strong></article>
+        <article class="metric-card"><span>Custo do produto</span><strong id="metric-custo_produto">R$ 0,00</strong></article>
+        <article class="metric-card"><span>Custo de devolução</span><strong id="metric-custo_devolucao">R$ 0,00</strong></article>
+        <article class="metric-card metric-card--highlight"><span>Margem de contribuição</span><strong id="metric-margem_contribuicao">R$ 0,00</strong><small id="metric-margem_contribuicao_pct">0%</small></article>
+      </section>
+
+      <section class="rent-panel">
+        <header class="rent-panel__head">
+          <div>
+            <h2>Todos os produtos</h2>
+            <p id="rent-table-meta" class="rent-panel__subtitle">Carregando...</p>
+          </div>
+          <div class="rent-panel__actions">
+            <span class="hint">Edite custo/alíquota por linha ou importe por planilha.</span>
+          </div>
+        </header>
+        <div class="rent-table-wrap">
+          <table class="rent-table">
+            <thead>
+              <tr>
+                <th class="sticky-col">Título</th>
+                <th>Qualidade</th>
+                <th>Carga de custos do produto</th>
+                <th>Carga de alíquota</th>
+                <th>Faturamento</th>
+                <th>Bonificações</th>
+                <th>Unidades vendidas</th>
+                <th>Ticket médio</th>
+                <th>Custo do produto</th>
+                <th>Custo de publicação</th>
+                <th>Custo de envio</th>
+                <th>Custo de devolução</th>
+                <th>Investimento</th>
+                <th>Impostos</th>
+                <th>Margem de contribuição</th>
+                <th>Margem sem publicidade</th>
+                <th>MC %</th>
+                <th>MC sem ads %</th>
+                <th>Share de lucro</th>
+                <th>Estoque</th>
+                <th>Duração do estoque</th>
+              </tr>
+            </thead>
+            <tbody id="rent-table-body"><tr><td colspan="21" class="table-empty">Carregando…</td></tr></tbody>
+          </table>
+        </div>
+        <div class="rent-pagination">
+          <button id="rent-prev" class="btn-secondary" type="button">Anterior</button>
+          <span id="rent-page-info">Página 1</span>
+          <button id="rent-next" class="btn-secondary" type="button">Próxima</button>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <div id="rent-loading" class="rent-loading hidden" aria-hidden="true">
+    <div class="rent-loading__box">
+      <div class="rent-loading__spinner"></div>
+      <div class="rent-loading__text">Carregando...</div>
+    </div>
+  </div>
+</body>
+</html>

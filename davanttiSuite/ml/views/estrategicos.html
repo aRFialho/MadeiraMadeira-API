@@ -1,0 +1,328 @@
+<!-- views/estrategicos.html -->
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Produtos Estratégicos</title>
+
+  <!-- Estilos globais + específicos -->
+  <link rel="stylesheet" href="/ml/css/dashboard.css?v=2">
+  <link rel="stylesheet" href="/ml/css/estrategicos.css?v=3">
+</head>
+<body>
+  <!-- TOPO FIXO (mesmo padrão das outras telas) -->
+  <header class="account-bar">
+    <div class="account-bar__left">
+      <a class="brand" href="/ml/dashboard" aria-label="DAVANTTI">
+        <img
+          src="/ml/img/davantti.png"
+          alt="DAVANTTI"
+          class="brand__logo"
+          width="170"
+          height="42"
+          decoding="async"
+          loading="eager"
+        />
+      </a>
+    </div>
+
+    <div class="account-bar__right">
+      <div class="account-bar__current">
+        <span class="lbl">Conta:</span>
+        <span id="account-current" class="val" data-account-label>Carregando...</span>
+      </div>
+
+      <button
+        id="btn-status"
+        class="account-bar__status"
+        title="Ver status do token"
+        type="button"
+        data-account-status
+      >Status</button>
+
+      <button
+        id="account-switch"
+        class="account-bar__switch"
+        title="Trocar de conta"
+        type="button"
+        data-account-switch
+      >Trocar Conta</button>
+    </div>
+  </header>
+
+<!-- NAV TABS -->
+  <nav class="main-nav">
+    <div class="tabs">
+      <button class="nav-tab" onclick="location.href=mlUrl('/dashboard#dashboard')">Dashboard</button>
+      <button class="nav-tab" onclick="location.href=mlUrl('/dashboard#anuncios')">Anúncios</button>
+      <button class="nav-tab  active" onclick="location.href=mlUrl('/dashboard#produtos')">Alterações Massivas</button>
+      <button class="nav-tab" onclick="location.href=mlUrl('/dashboard#ia')">IA & Analytics</button>
+      <button class="nav-tab" onclick="location.href=mlUrl('/dashboard#publicidade')">Publicidade</button>
+      <button class="nav-tab" onclick="location.href=mlUrl('/dashboard#benchmarking')">Benchmarking</button>
+      <button class="nav-tab" onclick="location.href=mlUrl('/dashboard#alertas')">Alertas</button>
+      <button class="nav-tab" onclick="location.href=mlUrl('/dashboard#ml')">ML</button>
+      <button class="nav-tab" onclick="location.href=mlUrl('/full')">FULL</button>
+      <button class="nav-tab" onclick="location.href=mlUrl('/dashboard#admin')">Admin</button>
+    </div>
+  </nav>
+
+  <div class="wrap estrategicos-wrap">
+    <!-- CABEÇALHO DA PÁGINA -->
+    <header class="page-header estrategicos-header">
+      <div>
+        <h2>Produtos Estratégicos</h2>
+        <p class="subtitle">
+          Gerencie a lista por conta e defina <strong>Preço Promo</strong> por item.
+          O sistema calcula a <strong>%</strong> automaticamente a partir do <strong>Preço Original</strong>.
+        </p>
+      </div>
+
+      <!-- Controles principais -->
+      <div class="estrategicos-header__actions">
+        <div class="estrategicos-header__group">
+          <label for="strategicGroup">Lista de estratégicos</label>
+          <select id="strategicGroup">
+            <option value="drossi">DRossi Interiores</option>
+            <option value="diplany">Diplany</option>
+            <option value="rossidecor">Rossi Decor</option>
+          </select>
+        </div>
+
+        <button id="btnAddRow" type="button" class="btn secondary">
+          ➕ Adicionar item
+        </button>
+
+        <button id="btnToggleUpload" type="button" class="btn ghost">
+          ⬆️ Atualizar por arquivo
+        </button>
+      </div>
+    </header>
+
+    <!-- ================= LOTE DE MLBS ================= -->
+    <section id="addMlbsPanel" class="card estrategicos-add-panel" hidden>
+      <header class="card-header">
+        <div>
+          <h3>Lote de MLBs</h3>
+          <p class="muted">
+            Cole abaixo um ou mais <strong>MLBs</strong>, um por linha (ou separados por espaço / vírgula).<br>
+            O sistema valida duplicados e não insere MLB que já exista na lista.
+          </p>
+        </div>
+      </header>
+
+      <div class="estrategicos-add-panel__body">
+        <label for="txtAddMlbs" class="estrategicos-add-panel__label">MLBs</label>
+        <textarea
+          id="txtAddMlbs"
+          class="estrategicos-add-panel__textarea"
+          rows="6"
+          placeholder="MLB123456789&#10;MLB987654321&#10;MLB000000001"
+        ></textarea>
+
+        <div class="estrategicos-add-panel__actions">
+          <button id="btnAddMlbsConfirm" type="button" class="btn primary">
+            ➕ Adicionar à lista
+          </button>
+          <button id="btnAddMlbsCancel" type="button" class="btn ghost">
+            Cancelar
+          </button>
+        </div>
+
+        <p id="addMlbsStatus" class="muted"></p>
+      </div>
+    </section>
+
+    <!-- UPLOAD CSV/XLSX -->
+    <section id="uploadPanel" class="card estrategicos-upload" hidden>
+      <header class="card-header">
+        <div>
+          <h3>Atualizar Estratégicos por Arquivo</h3>
+          <p class="muted">
+            Envie um arquivo <strong>CSV</strong> com as colunas <code>mlb</code> e <code>promo_price</code> (preço final desejado).
+            Itens já existentes serão ignorados e listados no relatório ao final.
+          </p>
+        </div>
+      </header>
+
+      <div class="estrategicos-upload__body">
+        <div class="estrategicos-upload__field">
+          <label for="fileStrategicos">Arquivo (.csv)</label>
+          <input id="fileStrategicos" type="file" accept=".csv,.xls,.xlsx" />
+          <small class="muted">Exemplo CSV: <code>MLB123;199.90</code></small>
+        </div>
+
+        <div class="estrategicos-upload__field inline">
+          <label>
+            <input id="chkRemoveMissing" type="checkbox" />
+            Remover itens que não estiverem no arquivo
+          </label>
+        </div>
+
+        <div class="estrategicos-upload__actions">
+          <button id="btnProcessFile" class="btn primary" type="button">
+            🔄 Processar arquivo
+          </button>
+          <button id="btnCloseUpload" class="btn ghost" type="button">
+            Fechar
+          </button>
+        </div>
+
+        <p id="uploadStatus" class="muted"></p>
+      </div>
+    </section>
+
+    <!-- CONTROLES DO CICLO -->
+    <section class="card estrategicos-controls">
+      <header class="card-header estrategicos-controls__header">
+        <div>
+          <h3>Configuração do ciclo atual</h3>
+          <p class="muted">
+            Selecione o <strong>tipo de campanha</strong> e aplique promoções para os itens selecionados.
+            A <strong>% calculada</strong> aparece automaticamente na tabela com base no <strong>Preço Promo</strong> digitado por item.
+          </p>
+        </div>
+      </header>
+
+      <div class="estrategicos-controls__body">
+        <div class="estrategicos-controls__left">
+          <div class="estrategicos-controls__group">
+            <label for="promotionType">Tipo de campanha</label>
+            <select id="promotionType">
+              <option value="DEAL">DEAL / Seller Campaign</option>
+              <option value="SMART">SMART</option>
+              <option value="PRICE_MATCHING">Price Matching</option>
+              <option value="MARKETPLACE_CAMPAIGN">Marketplace Campaign</option>
+            </select>
+            <small class="muted">
+              Esse tipo será utilizado quando o sistema criar as promoções.
+            </small>
+          </div>
+        </div>
+
+        <div class="estrategicos-controls__right">
+          <div class="apply-toolbar">
+            <div class="apply-toolbar__group">
+              <span class="apply-toolbar__label">Seleção</span>
+              <div class="apply-toolbar__buttons">
+                <!-- ID alinhado com o mapeamento padrão do seu JS -->
+                <button id="btnSelectAllGlobal" class="btn secondary" type="button" title="Seleciona todos os itens da lista (todas as páginas)">
+                  ✅ Selecionar todos
+                </button>
+
+                <button id="btnClearSelection" class="btn ghost" type="button" title="Limpa a seleção">
+                  Limpar seleção
+                </button>
+              </div>
+
+              <span id="applyHint" class="muted apply-hint">
+                Selecione itens na tabela (página atual) ou clique em <strong>Selecionar todos</strong>.
+              </span>
+            </div>
+
+            <div class="apply-toolbar__divider"></div>
+
+            <div class="apply-toolbar__group">
+              <span class="apply-toolbar__label">Ações</span>
+              <div class="apply-toolbar__buttons apply-toolbar__buttons--ops">
+                <button id="btnSyncSelected" class="btn secondary" type="button" title="Atualiza do ML os itens selecionados">
+                  🔄 Atualizar selecionados
+                </button>
+
+                <button id="btnApplySelected" class="btn primary" type="button">
+                  🚀 Aplicar promoção
+                </button>
+
+                <button id="btnDeleteSelected" class="btn danger" type="button">
+                  🗑 Excluir selecionados
+                </button>
+              </div>
+
+              <!-- Barra de progresso (lote / bulk) -->
+              <div id="bulkAddProgress" class="estrategicos-progress" hidden>
+                <div class="estrategicos-progress__bar">
+                  <div id="bulkAddProgressFill" class="estrategicos-progress__fill"></div>
+                </div>
+                <div id="bulkAddProgressLabel" class="estrategicos-progress__label">
+                  0 / 0
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TABELA -->
+    <section class="card estrategicos-table-card">
+      <header class="card-header">
+        <div>
+          <h3>Lista de produtos estratégicos</h3>
+          <p class="muted">
+            <strong>Nome</strong> não é editável. <strong>Preço Original</strong> vem do ML. Você define <strong>Preço Promo</strong>
+            e a <strong>% calculada</strong> aparece automaticamente.
+          </p>
+        </div>
+
+        <div class="estrategicos-table__tools">
+  <div class="estrategicos-search" title="Buscar por MLB">
+    <span class="hint">🔎</span>
+    <input
+      id="mlbSearch"
+      type="text"
+      placeholder="Buscar MLB (ex: MLB123...)"
+      autocomplete="off"
+      inputmode="text"
+    />
+    <span id="mlbSearchCount" class="hint"></span>
+  </div>
+
+  <div class="estrategicos-table__summary">
+    <span id="summaryTotal">0 itens</span>
+    <span id="summarySelected">0 selecionados</span>
+  </div>
+</div>
+
+      </header>
+
+      <div class="table-wrapper table-wrapper--wide">
+        <table class="table estrategicos-table" id="tblStrategicos">
+          <thead>
+            <tr>
+              <th style="width:32px;">
+                <!-- Este checkbox seleciona apenas a PÁGINA atual -->
+                <input type="checkbox" id="chkSelectAllRows" title="Seleciona todos da página atual">
+              </th>
+              <th>MLB</th>
+              <th>Nome do produto</th>
+              <th>Preço Original</th>
+              <th>Preço Promo</th>
+              <th>% calculada</th>
+              <th>% aplicada atualmente</th>
+              <th>Status</th>
+              <th style="width:140px;">Ações</th>
+            </tr>
+          </thead>
+          <tbody id="tbodyStrategicos">
+            <tr>
+              <td colspan="9" class="muted">
+                Nenhum produto estratégico cadastrado. Use <strong>“Adicionar item”</strong> ou
+                <strong>“Atualizar por arquivo”</strong>.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Paginação -->
+      <div id="strategicPagination" class="strategic-pagination"></div>
+    </section>
+  </div>
+
+  <script src="/ml/js/ml-base.js"></script>
+  <!-- Scripts globais -->
+  <script src="/ml/js/account-bar.js" defer></script>
+  <!-- Script específico -->
+  <script src="/ml/js/estrategicos.js" defer></script>
+</body>
+</html>

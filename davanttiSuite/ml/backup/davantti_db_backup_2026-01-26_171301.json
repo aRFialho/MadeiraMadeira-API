@@ -1,0 +1,219 @@
+{
+  "ok": true,
+  "format": "davantti_backup_json_v1",
+  "created_at": "2026-01-26T17:13:01.300Z",
+  "tables": [
+    "empresas",
+    "usuarios",
+    "empresa_usuarios",
+    "meli_contas",
+    "meli_tokens",
+    "oauth_states",
+    "migracoes"
+  ],
+  "data": {
+    "empresas": [
+      {
+        "id": "4",
+        "nome": "DRossi",
+        "criado_em": "2025-12-24T17:42:39.428Z"
+      },
+      {
+        "id": "5",
+        "nome": "Master",
+        "criado_em": "2026-01-20T17:10:53.661Z"
+      }
+    ],
+    "usuarios": [
+      {
+        "id": "7",
+        "nome": "DRossi Interiores",
+        "email": "cadastro5@drossiinteriores.com.br",
+        "senha_hash": "$2b$10$nBY3xAAtnSXgHfOePX.jy.zJp6Ql8Jf3aoD.WKzrIp5JF1ZmO4heC",
+        "nivel": "usuario",
+        "criado_em": "2025-12-24T17:42:39.428Z",
+        "ultimo_login_em": "2026-01-14T17:15:43.220Z"
+      },
+      {
+        "id": "8",
+        "nome": "Wellington",
+        "email": "cadastro@drossiinteriores.com.br",
+        "senha_hash": "$2b$10$ryj0fbis6fw/WX67UNZk0OcCV.xeLZigXgj8M2QuHW67.Nh4uWnjy",
+        "nivel": "usuario",
+        "criado_em": "2026-01-14T17:23:58.709Z",
+        "ultimo_login_em": null
+      },
+      {
+        "id": "9",
+        "nome": "Master",
+        "email": "admin@davantti.com.br",
+        "senha_hash": "$2b$10$oyi4n3EOf6r.80I..SyKyubg60eFISg3uF5kYRiwH9ZLjDX4DNX72",
+        "nivel": "admin_master",
+        "criado_em": "2026-01-20T17:10:53.661Z",
+        "ultimo_login_em": "2026-01-26T11:24:20.806Z"
+      }
+    ],
+    "empresa_usuarios": [
+      {
+        "empresa_id": "4",
+        "usuario_id": "7",
+        "papel": "owner",
+        "criado_em": "2025-12-24T17:42:39.428Z"
+      },
+      {
+        "empresa_id": "4",
+        "usuario_id": "8",
+        "papel": "operador",
+        "criado_em": "2026-01-14T17:23:58.709Z"
+      },
+      {
+        "empresa_id": "5",
+        "usuario_id": "9",
+        "papel": "owner",
+        "criado_em": "2026-01-20T17:10:53.661Z"
+      }
+    ],
+    "meli_contas": [
+      {
+        "id": "2",
+        "empresa_id": "4",
+        "meli_user_id": "28749980",
+        "apelido": "DROSSI INTERIORES",
+        "site_id": "MLB",
+        "status": "ativa",
+        "criado_em": "2025-12-24T17:43:23.414Z",
+        "atualizado_em": "2026-01-26T17:08:22.441Z",
+        "ultimo_uso_em": "2026-01-26T17:08:33.695Z"
+      },
+      {
+        "id": "3",
+        "empresa_id": "4",
+        "meli_user_id": "177237120",
+        "apelido": "DIPLANY",
+        "site_id": "MLB",
+        "status": "ativa",
+        "criado_em": "2025-12-24T18:21:53.819Z",
+        "atualizado_em": "2026-01-19T11:09:10.023Z",
+        "ultimo_uso_em": "2026-01-19T11:09:10.023Z"
+      },
+      {
+        "id": "4",
+        "empresa_id": "4",
+        "meli_user_id": "251682125",
+        "apelido": "ROSSI DECOR",
+        "site_id": "MLB",
+        "status": "ativa",
+        "criado_em": "2025-12-24T18:22:55.776Z",
+        "atualizado_em": "2026-01-19T11:09:16.086Z",
+        "ultimo_uso_em": "2026-01-19T11:09:16.086Z"
+      }
+    ],
+    "meli_tokens": [
+      {
+        "meli_conta_id": "3",
+        "access_token": "APP_USR-1613109131561291-011907-67c38b79ea3f4270126e6e52871ee56b-177237120",
+        "access_expires_at": "2026-01-19T17:09:10.016Z",
+        "refresh_token": "TG-696e10d54e99090001892143-177237120",
+        "scope": "offline_access read urn:global:admin:oauth:/read-only urn:ml:all:comunication:/read-write urn:ml:all:publish-sync:/read-write urn:ml:mktp:ads:/read-write urn:ml:mktp:comunication:/read-write urn:ml:mktp:invoices:/read-write urn:ml:mktp:metrics:/read-only urn:ml:mktp:offers:/read-write urn:ml:mktp:orders-shipments:/read-write urn:ml:mktp:publish-sync:/read-write urn:ml:vis:comunication:/read-write urn:ml:vis:publish-sync:/read-write write",
+        "refresh_obtido_em": "2025-12-24T18:21:53.819Z",
+        "ultimo_refresh_em": "2026-01-19T11:09:10.020Z"
+      },
+      {
+        "meli_conta_id": "4",
+        "access_token": "APP_USR-1613109131561291-011907-e9f598786b283ae1cb85b7096861770a-251682125",
+        "access_expires_at": "2026-01-19T17:09:16.081Z",
+        "refresh_token": "TG-696e10db1161bd0001999fc6-251682125",
+        "scope": "offline_access read urn:global:admin:oauth:/read-only urn:ml:all:comunication:/read-write urn:ml:all:publish-sync:/read-write urn:ml:mktp:ads:/read-write urn:ml:mktp:comunication:/read-write urn:ml:mktp:invoices:/read-write urn:ml:mktp:metrics:/read-only urn:ml:mktp:offers:/read-write urn:ml:mktp:orders-shipments:/read-write urn:ml:mktp:publish-sync:/read-write urn:ml:vis:comunication:/read-write urn:ml:vis:publish-sync:/read-write write",
+        "refresh_obtido_em": "2025-12-24T18:22:55.776Z",
+        "ultimo_refresh_em": "2026-01-19T11:09:16.084Z"
+      },
+      {
+        "meli_conta_id": "2",
+        "access_token": "APP_USR-1613109131561291-012613-2e854253bbef833a05fc3365634fb4f3-28749980",
+        "access_expires_at": "2026-01-26T23:08:22.394Z",
+        "refresh_token": "TG-69779f8613922000017a8153-28749980",
+        "scope": "offline_access read urn:global:admin:oauth:/read-only urn:ml:all:comunication:/read-write urn:ml:all:publish-sync:/read-write urn:ml:mktp:ads:/read-write urn:ml:mktp:comunication:/read-write urn:ml:mktp:invoices:/read-write urn:ml:mktp:metrics:/read-only urn:ml:mktp:offers:/read-write urn:ml:mktp:orders-shipments:/read-write urn:ml:mktp:publish-sync:/read-write urn:ml:vis:comunication:/read-write urn:ml:vis:publish-sync:/read-write write",
+        "refresh_obtido_em": "2025-12-24T17:43:23.414Z",
+        "ultimo_refresh_em": "2026-01-26T17:08:22.407Z"
+      }
+    ],
+    "oauth_states": [],
+    "migracoes": [
+      {
+        "id": "1",
+        "arquivo": "001_create_usuarios.sql",
+        "aplicado_em": "2025-12-22T17:02:10.677Z"
+      },
+      {
+        "id": "2",
+        "arquivo": "002_create_empresas.sql",
+        "aplicado_em": "2025-12-23T20:38:18.331Z"
+      },
+      {
+        "id": "3",
+        "arquivo": "003_create_empresa_usuarios.sql",
+        "aplicado_em": "2025-12-23T20:38:19.339Z"
+      },
+      {
+        "id": "4",
+        "arquivo": "004_create_meli_contas.sql",
+        "aplicado_em": "2025-12-24T12:22:58.589Z"
+      },
+      {
+        "id": "5",
+        "arquivo": "005_create_meli_tokens.sql",
+        "aplicado_em": "2025-12-24T12:22:59.620Z"
+      },
+      {
+        "id": "6",
+        "arquivo": "006_create_oauth_states.sql",
+        "aplicado_em": "2025-12-24T12:23:00.610Z"
+      },
+      {
+        "id": "7",
+        "arquivo": "007_unique_meli_user_global.sql",
+        "aplicado_em": "2025-12-24T12:23:01.690Z"
+      },
+      {
+        "id": "8",
+        "arquivo": "008_add_admin_master_to_usuarios_nivel.sql",
+        "aplicado_em": "2025-12-26T14:14:29.093Z"
+      },
+      {
+        "id": "9",
+        "arquivo": "009_create_schema_migrations.sql",
+        "aplicado_em": "2025-12-26T17:32:37.775Z"
+      },
+      {
+        "id": "10",
+        "arquivo": "008_consolidar_migracoes.sql",
+        "aplicado_em": "2025-12-29T14:51:44.171Z"
+      },
+      {
+        "id": "11",
+        "arquivo": "010_consolidar_migracoes.sql",
+        "aplicado_em": "2025-12-29T14:52:37.286Z"
+      },
+      {
+        "id": "12",
+        "arquivo": "011_create_anuncios_estrategicos.sql",
+        "aplicado_em": "2025-12-31T14:25:10.757Z"
+      },
+      {
+        "id": "13",
+        "arquivo": "012_add_columns_anuncios_estrategicos.sql",
+        "aplicado_em": "2025-12-31T14:43:09.624Z"
+      },
+      {
+        "id": "14",
+        "arquivo": "013_create_anuncios_full.sql",
+        "aplicado_em": "2025-12-31T17:29:47.277Z"
+      },
+      {
+        "id": "15",
+        "arquivo": "014_add_metrics_full_40d.sql",
+        "aplicado_em": "2026-01-01T00:40:25.161Z"
+      }
+    ]
+  }
+}
