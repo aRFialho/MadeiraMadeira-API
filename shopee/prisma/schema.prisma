@@ -1,0 +1,477 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  MANAGER
+  VIEWER
+}
+
+enum AdsChannel {
+  CPC
+  GMS
+}
+
+enum AdsMatchConfidence {
+  HIGH
+  MEDIUM
+  LOW
+}
+
+model Account {
+  id   Int    @id @default(autoincrement())
+  name String
+
+  users User[]
+  shops Shop[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([name])
+}
+
+model User {
+  id           Int     @id @default(autoincrement())
+  name         String?
+  email        String  @unique
+  passwordHash String
+  role         Role    @default(VIEWER)
+
+  accountId Int
+  account   Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  sessions       Session[] @relation("UserSessions")
+  impersonations Session[] @relation("SessionRealUser")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([accountId, role])
+}
+
+model Session {
+  id String @id @default(cuid())
+
+  userId Int
+  user   User @relation("UserSessions", fields: [userId], references: [id], onDelete: Cascade)
+
+  activeShopId Int?
+  activeShop   Shop? @relation(fields: [activeShopId], references: [id], onDelete: SetNull)
+
+  realUserId    Int?
+  realUser      User?   @relation("SessionRealUser", fields: [realUserId], references: [id], onDelete: SetNull)
+  impersonating Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  @@index([userId])
+  @@index([activeShopId])
+  @@index([expiresAt])
+}
+
+model Shop {
+  id Int @id @default(autoincrement())
+
+  accountId Int?
+  account   Account? @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  shopId BigInt  @unique
+  region String?
+  status String  @default("UNKNOWN")
+
+  taxRate Float? @default(0)
+
+  geoAddresses OrderGeoAddress[]
+  tokens       OAuthToken?
+  orders       Order[]
+  products     Product[]
+  orderItems   OrderItem[]
+
+  campaignGroups AdsCampaignGroup[]
+
+  // Ads / ROAS real aproximado
+  adsHourlyMetrics     AdsHourlyMetric[]
+  orderAdsAttributions OrderAdsAttribution[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sessions Session[]
+
+  @@index([accountId])
+}
+
+model OAuthToken {
+  id Int @id @default(autoincrement())
+
+  shopId Int  @unique
+  shop   Shop @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  accessToken           String?   @db.Text
+  accessTokenExpiresAt  DateTime?
+  refreshToken          String?   @db.Text
+  refreshTokenExpiresAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Order {
+  id Int @id @default(autoincrement())
+
+  shopId Int
+  shop   Shop @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  orderSn     String
+  orderStatus String?
+  region      String?
+  currency    String?
+
+  daysToShip       Int?
+  shipByDate       DateTime?
+  gmvCents         Int       @default(0)
+  shopeeCreateTime DateTime?
+  shopeeUpdateTime DateTime?
+
+  bookingSn             String?
+  cod                   Boolean?
+  advancePackage        Boolean?
+  hotListingOrder       Boolean?
+  isBuyerShopCollection Boolean?
+  messageToSeller       String?          @db.Text
+  geoAddress            OrderGeoAddress?
+  reverseShippingFee    Int?
+
+  shippingCarrier           String?
+  paymentMethod             String?
+  estimatedShippingFeeCents Int?    @default(0)
+  voucherFromSellerCents    Int?    @default(0)
+  voucherFromShopeeCents    Int?    @default(0)
+
+  // Financials
+  commFeeCents           Int? @default(0)
+  serviceFeeCents        Int? @default(0)
+  transactionFeeCents    Int? @default(0)
+  escrowAmountCents      Int? @default(0)
+  actualShippingFeeCents Int? @default(0)
+  totalAmountCents       Int? @default(0)
+
+  // Subtotal dos Produtos (itens) em centavos + debug
+  itemsSubtotalCents Int?
+  shippingCents      Int?
+
+  // Detalhamento financeiro sincronizado (v2.payment.get_income_detail)
+  incomeSyncedAt DateTime?
+  incomeStatus   String? // "Released", "Pending" etc
+  incomeNetCents Int? // Valor líquido final recebido
+
+  // Campos detalhados de income (separados para facilitar queries)
+  // Valores negativos representam custos/descontos
+  finCommissionCents     Int? @default(0)
+  finServiceFeeCents     Int? @default(0)
+  finTransactionFeeCents Int? @default(0)
+  finShippingFeeCents    Int? @default(0) // Frete pago pelo comprador (positivo) ou descontado?
+  finVoucherSellerCents  Int? @default(0)
+  finVoucherShopeeCents  Int? @default(0)
+
+  // Descontos detalhados
+  finShopeeDiscountCents        Int? @default(0)
+  finDiscountFromCoinCents      Int? @default(0)
+  finDiscountVoucherShopeeCents Int? @default(0)
+  finDiscountVoucherSellerCents Int? @default(0)
+
+  // Atribuição aproximada Ads ↔ Pedido
+  adsAttribution OrderAdsAttribution?
+
+  addressSnapshots OrderAddressSnapshot[]
+  addressAlerts    OrderAddressChangeAlert[]
+  items            OrderItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([shopId, orderSn])
+  @@index([shopId, orderStatus])
+  @@index([shopId, shipByDate])
+}
+
+model OrderGeoAddress {
+  id Int @id @default(autoincrement())
+
+  shopId Int
+  shop   Shop @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  orderId Int   @unique
+  order   Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  orderSn String
+
+  state     String
+  stateNorm String
+  city      String?
+  cityNorm  String?
+
+  zipcode     String?
+  fullAddress String? @db.Text
+
+  shopeeCreateTime DateTime?
+  shopeeUpdateTime DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@unique([shopId, orderSn])
+  @@index([shopId, stateNorm])
+  @@index([shopId, stateNorm, cityNorm])
+  @@index([shopId, shopeeCreateTime])
+}
+
+model OrderAddressSnapshot {
+  id Int @id @default(autoincrement())
+
+  orderId Int
+  order   Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  name        String?
+  phone       String?
+  town        String?
+  district    String?
+  city        String?
+  state       String?
+  region      String?
+  zipcode     String?
+  fullAddress String? @db.Text
+
+  addressHash String
+  createdAt   DateTime @default(now())
+
+  oldAlerts OrderAddressChangeAlert[] @relation("OldAddressSnapshot")
+  newAlerts OrderAddressChangeAlert[] @relation("NewAddressSnapshot")
+
+  @@index([orderId, createdAt])
+  @@index([addressHash])
+}
+
+model Product {
+  id Int @id @default(autoincrement())
+
+  shopId Int
+  shop   Shop @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  itemId      BigInt
+  status      String?
+  title       String?
+  description String? @db.Text
+
+  ratingStar     Float?
+  ratingCount    Int?
+  ratingOver500  Boolean   @default(false)
+  ratingSyncedAt DateTime?
+
+  costCents Int? @default(0)
+
+  currency   String?
+  priceMin   Int?
+  priceMax   Int?
+  itemSku    String?
+  stock      Int?
+  sold       Int?
+  attributes Json?
+  logistics  Json?
+  dimension  Json?
+  weight     Float?
+  daysToShip Int?
+  hasModel   Boolean?
+  brand      String?
+  categoryId BigInt?
+
+  shopeeCreateTime DateTime?
+  shopeeUpdateTime DateTime?
+
+  images ProductImage[]
+  models ProductModel[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orderItems OrderItem[]
+
+  @@unique([shopId, itemId])
+  @@index([shopId, status])
+}
+
+model ProductImage {
+  id        Int     @id @default(autoincrement())
+  productId Int
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  url     String
+  imageId String?
+
+  @@index([productId])
+}
+
+model ProductModel {
+  id Int @id @default(autoincrement())
+
+  productId Int
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  modelId          BigInt
+  name             String?
+  sku              String?
+  price            Int?
+  stock            Int?
+  sold             Int?
+  ratingStar       Float?
+  ratingCount      Int?
+  shopeeCreateTime DateTime?
+
+  @@unique([productId, modelId])
+  @@index([productId])
+}
+
+model AdsCampaignGroup {
+  id     Int  @id @default(autoincrement())
+  shopId Int
+  shop   Shop @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  name        String
+  description String?
+
+  campaigns AdsCampaignGroupCampaign[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([shopId, name])
+}
+
+model AdsCampaignGroupCampaign {
+  id      Int              @id @default(autoincrement())
+  groupId Int
+  group   AdsCampaignGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  campaignId String
+
+  createdAt DateTime @default(now())
+
+  @@unique([groupId, campaignId])
+  @@index([campaignId])
+}
+
+model OrderAddressChangeAlert {
+  id Int @id @default(autoincrement())
+
+  orderId Int
+  order   Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  oldSnapshotId Int?
+  oldSnapshot   OrderAddressSnapshot? @relation("OldAddressSnapshot", fields: [oldSnapshotId], references: [id], onDelete: SetNull)
+
+  newSnapshotId Int
+  newSnapshot   OrderAddressSnapshot @relation("NewAddressSnapshot", fields: [newSnapshotId], references: [id], onDelete: Cascade)
+
+  oldHash String?
+  newHash String
+
+  status String @default("PENDING") // PENDING, RESOLVED, IGNORED
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([orderId, newHash])
+  @@index([orderId])
+  @@index([status])
+}
+
+model OrderItem {
+  id Int @id @default(autoincrement())
+
+  shopId Int
+  shop   Shop @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  orderId Int
+  order   Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  productId Int?
+  product   Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  itemId         BigInt
+  modelId        BigInt?
+  itemSku        String?
+  modelSku       String?
+  modelName      String?
+  itemName       String?
+  imageUrl       String?
+  weight         Float?
+  orderPrice     Int? // original price
+  dealPrice      Int? // discounted price
+  variationPrice Int? // model price
+  quantity       Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([orderId])
+  @@index([shopId, itemId])
+}
+
+model AdsHourlyMetric {
+  id Int @id @default(autoincrement())
+
+  shopId Int
+  shop   Shop @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  date   DateTime // YYYY-MM-DD
+  hour   Int // 0..23
+  type   String // "shop_daily" ou "product_daily" ou "campaign" ...
+  itemId BigInt? // se for métrica de item
+
+  impression Int   @default(0)
+  click      Int   @default(0)
+  ctr        Float @default(0)
+  expense    Int   @default(0) // cents
+  cpc        Int   @default(0) // cents
+  directGmv  Int   @default(0) // cents
+  directSold Int   @default(0)
+  directRoas Float @default(0)
+  broadGmv   Int   @default(0) // cents
+  broadSold  Int   @default(0)
+  broadRoas  Float @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([shopId, date, hour, type, itemId])
+  @@index([shopId, date])
+}
+
+model OrderAdsAttribution {
+  id Int @id @default(autoincrement())
+
+  shopId Int
+  shop   Shop @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  orderId Int   @unique
+  order   Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  orderSn   String
+  adsType   String? // "cpc", "gms" ...
+  channelId Int? // campaignId, etc
+
+  matchConfidence AdsMatchConfidence @default(LOW)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([shopId, orderSn])
+}
